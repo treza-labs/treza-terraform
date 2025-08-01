@@ -1,0 +1,105 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+      auto_approve:
+        description: 'Auto approve deployment'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ vars.AWS_REGION || 'us-west-2' }}
+    
+    - name: Setup Terraform variables
+      run: |
+        cd terraform
+        cat > terraform.tfvars << EOF
+        aws_region = "${{ vars.AWS_REGION || 'us-west-2' }}"
+        environment = "${{ github.event.inputs.environment }}"
+        project_name = "treza"
+        existing_dynamodb_table_name = "${{ vars.DYNAMODB_TABLE_NAME }}"
+        EOF
+        
+        cat > backend.conf << EOF
+        bucket = "${{ vars.TF_STATE_BUCKET }}"
+        key = "treza/${{ github.event.inputs.environment }}/terraform.tfstate"
+        region = "${{ vars.AWS_REGION || 'us-west-2' }}"
+        dynamodb_table = "${{ vars.TF_STATE_DYNAMODB_TABLE }}"
+        encrypt = true
+        EOF
+    
+    - name: Terraform Init
+      run: |
+        cd terraform
+        terraform init -backend-config=backend.conf
+    
+    - name: Terraform Plan
+      run: |
+        cd terraform
+        terraform plan -out=tfplan
+    
+    - name: Terraform Apply
+      if: github.event.inputs.auto_approve == 'true'
+      run: |
+        cd terraform
+        terraform apply -auto-approve tfplan
+    
+    - name: Terraform Apply (Manual approval required)
+      if: github.event.inputs.auto_approve != 'true'
+      run: |
+        cd terraform
+        echo "Manual approval required. Please review the plan and apply manually."
+        echo "Plan saved as tfplan"
+    
+    - name: Build and Push Docker Image
+      if: github.event.inputs.auto_approve == 'true'
+      run: |
+        # Login to ECR
+        aws ecr get-login-password --region ${{ vars.AWS_REGION || 'us-west-2' }} | docker login --username AWS --password-stdin ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION || 'us-west-2' }}.amazonaws.com
+        
+        # Build and push
+        cd docker/terraform-runner
+        IMAGE_URI="${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION || 'us-west-2' }}.amazonaws.com/treza-${{ github.event.inputs.environment }}-terraform-runner:latest"
+        docker build -t $IMAGE_URI .
+        docker push $IMAGE_URI
+    
+    - name: Output deployment info
+      if: github.event.inputs.auto_approve == 'true'
+      run: |
+        cd terraform
+        echo "## Deployment Complete! 🎉" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Region**: ${{ vars.AWS_REGION || 'us-west-2' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Infrastructure Outputs:" >> $GITHUB_STEP_SUMMARY
+        terraform output -json | jq -r 'to_entries[] | "- **\(.key)**: \(.value.value)"' >> $GITHUB_STEP_SUMMARY
