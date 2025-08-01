@@ -6,12 +6,20 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
   }
   
-  backend "s3" {
-    # Backend configuration will be provided via backend config file
-    # or environment variables during terraform init
-  }
+  # backend "s3" {
+  #   # Backend configuration will be provided via backend config file
+  #   # or environment variables during terraform init
+  # }
 }
 
 provider "aws" {

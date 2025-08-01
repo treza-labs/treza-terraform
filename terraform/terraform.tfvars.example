@@ -1,0 +1,31 @@
+# Core Configuration
+aws_region    = "us-west-2"
+environment   = "dev"
+project_name  = "treza"
+
+# Existing DynamoDB Configuration
+# This should be the name of your existing DynamoDB table from treza-app
+existing_dynamodb_table_name = "treza-enclaves"
+
+# Networking Configuration
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-west-2a", "us-west-2b"]
+
+# ECS Configuration
+ecs_cluster_name        = "treza-infrastructure"
+terraform_runner_cpu    = 1024
+terraform_runner_memory = 2048
+
+# Timeout Configuration (in seconds)
+deployment_timeout_seconds = 1800  # 30 minutes
+destroy_timeout_seconds    = 1200  # 20 minutes
+
+# Monitoring Configuration
+log_retention_days = 30
+
+# Additional Tags (optional)
+additional_tags = {
+  Team        = "infrastructure"
+  CostCenter  = "engineering"
+  Environment = "development"
+}

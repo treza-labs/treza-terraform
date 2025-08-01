@@ -68,6 +68,8 @@ module "step_functions" {
   security_group_id         = module.networking.terraform_runner_security_group_id
   step_functions_role_arn   = module.iam.step_functions_execution_role_arn
   dynamodb_table_name       = var.existing_dynamodb_table_name
+  validation_lambda_arn     = module.lambda_functions.validation_function_arn
+  error_handler_lambda_arn  = module.lambda_functions.error_handler_function_arn
   deployment_timeout        = var.deployment_timeout_seconds
   destroy_timeout           = var.destroy_timeout_seconds
   tags                      = local.common_tags

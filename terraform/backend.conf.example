@@ -1,0 +1,8 @@
+# Terraform Backend Configuration
+# Copy this file to backend.conf and customize for your environment
+
+bucket         = "your-terraform-state-bucket"
+key            = "treza/terraform.tfstate"
+region         = "us-west-2"
+dynamodb_table = "terraform-locks"
+encrypt        = true

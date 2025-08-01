@@ -2,39 +2,34 @@
 *.tfstate
 *.tfstate.*
 *.tfvars
-*.tfplan
 .terraform/
 .terraform.lock.hcl
 crash.log
+crash.*.log
+terraform.tfplan
+terraform.tfplan.*
 
-# AWS
-.aws/
+# Sensitive files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+# Lambda function builds
+lambda/*/builds/
+*.zip
 
-# Node.js (for any tooling)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Docker
+.dockerignore
 
-# IDEs
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# OS
+# OS generated files
 .DS_Store
 .DS_Store?
 ._*
@@ -45,30 +40,46 @@ Thumbs.db
 
 # Logs
 *.log
-logs/
 
-# Docker
-.dockerignore
-
-# Sensitive files
-*.pem
-*.key
-secrets.yaml
-secrets.yml
-
-# Environment files
+# Environment variables
 .env
 .env.local
 .env.*.local
 
-# Backup files
-*.bak
-*.backup
+# AWS
+.aws/
 
-# Test outputs
-coverage/
-.coverage
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing
 .pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
 
-# Terraform backend config
-backend.conf
+# Temporary files
+*.tmp
+*.temp
