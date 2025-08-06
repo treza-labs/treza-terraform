@@ -94,6 +94,15 @@ fi
 
 echo "✓ Docker image build completed"
 
+# Build Lambda functions first
+echo "=== Building Lambda Functions ==="
+cd "$PROJECT_ROOT"
+if [ -f "modules/lambda/build-functions.sh" ]; then
+    ./modules/lambda/build-functions.sh
+else
+    echo "Warning: Lambda build script not found, skipping..."
+fi
+
 # Deploy infrastructure
 echo "=== Deploying Infrastructure ==="
 cd "$TERRAFORM_DIR"

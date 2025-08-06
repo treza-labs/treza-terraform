@@ -17,6 +17,7 @@ override.tf.json
 
 # Lambda function builds
 lambda/*/builds/
+modules/lambda/builds/
 *.zip
 
 # Docker
