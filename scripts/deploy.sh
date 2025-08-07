@@ -53,15 +53,31 @@ echo "✓ Prerequisites check passed"
 echo "=== Validating Terraform Configuration ==="
 cd "$TERRAFORM_DIR"
 
-# Check for required files
+# Check for required files or use environment-specific configs
 if [ ! -f "terraform.tfvars" ]; then
-    echo "Error: terraform.tfvars not found. Copy from terraform.tfvars.example and customize."
-    exit 1
+    if [ -f "environments/${ENVIRONMENT}.tfvars" ]; then
+        echo "Using environment-specific config: environments/${ENVIRONMENT}.tfvars"
+        cp "environments/${ENVIRONMENT}.tfvars" terraform.tfvars
+    else
+        echo "Error: terraform.tfvars not found and no environment config available."
+        echo "Available options:"
+        echo "  1. Copy from terraform.tfvars.example and customize"
+        echo "  2. Use: cp environments/${ENVIRONMENT}.tfvars terraform.tfvars"
+        exit 1
+    fi
 fi
 
 if [ ! -f "backend.conf" ]; then
-    echo "Error: backend.conf not found. Copy from backend.conf.example and customize."
-    exit 1
+    if [ -f "environments/backend-${ENVIRONMENT}.conf" ]; then
+        echo "Using environment-specific backend: environments/backend-${ENVIRONMENT}.conf"
+        cp "environments/backend-${ENVIRONMENT}.conf" backend.conf
+    else
+        echo "Error: backend.conf not found and no environment backend config available."
+        echo "Available options:"
+        echo "  1. Copy from backend.conf.example and customize"
+        echo "  2. Use: cp environments/backend-${ENVIRONMENT}.conf backend.conf"
+        exit 1
+    fi
 fi
 
 # Initialize Terraform
