@@ -80,6 +80,26 @@ if [ ! -f "backend.conf" ]; then
     fi
 fi
 
+# Validate backend configuration
+echo "Validating backend configuration..."
+if [ -f "$PROJECT_ROOT/scripts/validate-backend.sh" ]; then
+    if ! "$PROJECT_ROOT/scripts/validate-backend.sh" "$ENVIRONMENT"; then
+        echo ""
+        echo "❌ Backend validation failed!"
+        echo "💡 To create backend resources automatically:"
+        echo "   $PROJECT_ROOT/scripts/create-backend.sh $ENVIRONMENT"
+        echo ""
+        read -p "Do you want to create backend resources now? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            "$PROJECT_ROOT/scripts/create-backend.sh" "$ENVIRONMENT"
+        else
+            echo "Please create backend resources manually and try again."
+            exit 1
+        fi
+    fi
+fi
+
 # Initialize Terraform
 echo "Initializing Terraform..."
 terraform init -backend-config=backend.conf
