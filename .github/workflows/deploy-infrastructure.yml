@@ -99,6 +99,24 @@ jobs:
         terraform import module.monitoring.aws_cloudwatch_query_definition.terraform_errors treza-${{ github.event.inputs.environment || 'dev' }}-terraform-errors || echo "Terraform errors query: skipped"
         terraform import module.monitoring.aws_cloudwatch_query_definition.deployment_duration treza-${{ github.event.inputs.environment || 'dev' }}-deployment-duration || echo "Deployment duration query: skipped"
         
+        # Import Lambda CloudWatch Log Groups
+        terraform import module.lambda_functions.aws_cloudwatch_log_group.validation /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-validation || echo "Validation Lambda log group: skipped"
+        terraform import module.lambda_functions.aws_cloudwatch_log_group.error_handler /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-error-handler || echo "Error handler Lambda log group: skipped"
+        terraform import module.lambda_functions.aws_cloudwatch_log_group.enclave_trigger /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-enclave-trigger || echo "Enclave trigger Lambda log group: skipped"
+        
+        # Import Step Functions State Machines
+        terraform import module.step_functions.aws_sfn_state_machine.deployment treza-${{ github.event.inputs.environment || 'dev' }}-deployment || echo "Deployment state machine: skipped"
+        terraform import module.step_functions.aws_sfn_state_machine.cleanup treza-${{ github.event.inputs.environment || 'dev' }}-cleanup || echo "Cleanup state machine: skipped"
+        
+        # Import Elastic IPs (NAT Gateway EIPs) - these are harder to predict, so we'll handle them differently
+        echo "📋 Checking for existing Elastic IPs..."
+        aws ec2 describe-addresses --query 'Addresses[?Domain==`vpc`].AllocationId' --output text | head -2 | while read -r allocation_id; do
+          if [ ! -z "$allocation_id" ]; then
+            terraform import module.networking.aws_eip.nat[0] $allocation_id 2>/dev/null || echo "EIP import attempted"
+            break
+          fi
+        done
+        
         echo "✅ Import phase completed"
       continue-on-error: true
     
