@@ -16,11 +16,8 @@ terraform {
     }
   }
   
-  backend "s3" {
-    # Backend configuration will be provided via backend config file
-    # Configuration is loaded from environments/backend-{env}.conf
-    encrypt = true
-  }
+  # Backend configuration is loaded from environments/backend-{env}.conf during init
+  # Use: terraform init -backend-config=environments/backend-dev.conf
 }
 
 provider "aws" {
