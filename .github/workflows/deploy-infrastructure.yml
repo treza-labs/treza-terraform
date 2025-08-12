@@ -168,6 +168,12 @@ jobs:
         terraform import module.lambda_functions.aws_lambda_function.error_handler treza-${{ github.event.inputs.environment || 'dev' }}-error-handler || echo "Error handler Lambda: skipped"
         terraform import module.lambda_functions.aws_lambda_function.enclave_trigger treza-${{ github.event.inputs.environment || 'dev' }}-enclave-trigger || echo "Enclave trigger Lambda: skipped"
         
+        # Import Lambda Event Source Mapping (DynamoDB Stream trigger)
+        ESM_UUID=$(aws lambda list-event-source-mappings --function-name treza-${{ github.event.inputs.environment || 'dev' }}-enclave-trigger --query 'EventSourceMappings[0].UUID' --output text 2>/dev/null || echo "")
+        if [ ! -z "$ESM_UUID" ] && [ "$ESM_UUID" != "None" ]; then
+          terraform import module.dynamodb_streams.aws_lambda_event_source_mapping.dynamodb_stream $ESM_UUID || echo "Event source mapping: skipped"
+        fi
+        
         # Skip CloudWatch Query Definitions - they'll be handled differently
         
         # Import Lambda CloudWatch Log Groups
