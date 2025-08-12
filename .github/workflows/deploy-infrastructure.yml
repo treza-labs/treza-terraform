@@ -137,6 +137,17 @@ jobs:
           if [ "$PRIVATE_RT_ID" != "None" ] && [ ! -z "$PRIVATE_RT_ID" ]; then
             terraform import module.networking.aws_route_table.private[0] $PRIVATE_RT_ID || echo "Private route table import: skipped"
           fi
+          
+          # Import VPC Endpoints to avoid route conflicts
+          S3_ENDPOINT_ID=$(aws ec2 describe-vpc-endpoints --filters "Name=vpc-id,Values=$VPC_ID" "Name=service-name,Values=com.amazonaws.us-west-2.s3" --query 'VpcEndpoints[0].VpcEndpointId' --output text 2>/dev/null || echo "")
+          if [ "$S3_ENDPOINT_ID" != "None" ] && [ ! -z "$S3_ENDPOINT_ID" ]; then
+            terraform import module.networking.aws_vpc_endpoint.s3 $S3_ENDPOINT_ID || echo "S3 VPC endpoint import: skipped"
+          fi
+          
+          DYNAMODB_ENDPOINT_ID=$(aws ec2 describe-vpc-endpoints --filters "Name=vpc-id,Values=$VPC_ID" "Name=service-name,Values=com.amazonaws.us-west-2.dynamodb" --query 'VpcEndpoints[0].VpcEndpointId' --output text 2>/dev/null || echo "")
+          if [ "$DYNAMODB_ENDPOINT_ID" != "None" ] && [ ! -z "$DYNAMODB_ENDPOINT_ID" ]; then
+            terraform import module.networking.aws_vpc_endpoint.dynamodb $DYNAMODB_ENDPOINT_ID || echo "DynamoDB VPC endpoint import: skipped"
+          fi
         fi
         
         # Import existing resources (ignore errors if they don't exist or are already imported)
@@ -164,9 +175,16 @@ jobs:
         terraform import module.lambda_functions.aws_cloudwatch_log_group.error_handler /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-error-handler || echo "Error handler Lambda log group: skipped"
         terraform import module.lambda_functions.aws_cloudwatch_log_group.enclave_trigger /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-enclave-trigger || echo "Enclave trigger Lambda log group: skipped"
         
-        # Import Step Functions State Machines
-        terraform import module.step_functions.aws_sfn_state_machine.deployment treza-${{ github.event.inputs.environment || 'dev' }}-deployment || echo "Deployment state machine: skipped"
-        terraform import module.step_functions.aws_sfn_state_machine.cleanup treza-${{ github.event.inputs.environment || 'dev' }}-cleanup || echo "Cleanup state machine: skipped"
+        # Import Step Functions State Machines using ARNs
+        DEPLOYMENT_SM_ARN=$(aws stepfunctions list-state-machines --query "stateMachines[?name=='treza-${{ github.event.inputs.environment || 'dev' }}-deployment'].stateMachineArn" --output text 2>/dev/null || echo "")
+        if [ ! -z "$DEPLOYMENT_SM_ARN" ] && [ "$DEPLOYMENT_SM_ARN" != "None" ]; then
+          terraform import module.step_functions.aws_sfn_state_machine.deployment $DEPLOYMENT_SM_ARN || echo "Deployment state machine: skipped"
+        fi
+        
+        CLEANUP_SM_ARN=$(aws stepfunctions list-state-machines --query "stateMachines[?name=='treza-${{ github.event.inputs.environment || 'dev' }}-cleanup'].stateMachineArn" --output text 2>/dev/null || echo "")
+        if [ ! -z "$CLEANUP_SM_ARN" ] && [ "$CLEANUP_SM_ARN" != "None" ]; then
+          terraform import module.step_functions.aws_sfn_state_machine.cleanup $CLEANUP_SM_ARN || echo "Cleanup state machine: skipped"
+        fi
         
         # EIPs are now imported above with the networking components
         
