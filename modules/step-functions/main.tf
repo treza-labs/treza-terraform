@@ -91,6 +91,7 @@ resource "aws_sfn_state_machine" "deployment" {
             }
           }
         }
+        ResultPath = "$.update_result"
         Next = "RunTerraformDeployment"
         Catch = [
           {
