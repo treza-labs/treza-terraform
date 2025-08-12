@@ -64,6 +64,13 @@ jobs:
         cd terraform
         terraform init -backend-config=backend.conf
     
+    - name: Import existing ECR repository if it exists
+      run: |
+        cd terraform
+        # Try to import the ECR repository if it already exists
+        terraform import module.ecs.aws_ecr_repository.terraform_runner treza-${{ github.event.inputs.environment }}-terraform-runner || echo "ECR repository doesn't exist or already imported"
+      continue-on-error: true
+    
     - name: Validate Terraform
       run: |
         cd terraform
