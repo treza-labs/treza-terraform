@@ -236,8 +236,9 @@ resource "aws_sfn_state_machine" "deployment" {
         Parameters = {
           FunctionName = var.error_handler_lambda_arn
           Payload = {
-            "enclave_id.$" = "$.enclave_id"
+            "execution_name.$" = "$$.Execution.Name"
             "error.$" = "$.error"
+            "state_machine.$" = "$$.StateMachine.Name"
           }
         }
         End = true
@@ -432,8 +433,9 @@ resource "aws_sfn_state_machine" "cleanup" {
         Parameters = {
           FunctionName = var.error_handler_lambda_arn
           Payload = {
-            "enclave_id.$" = "$.enclave_id"
+            "execution_name.$" = "$$.Execution.Name"
             "error.$" = "$.error"
+            "state_machine.$" = "$$.StateMachine.Name"
           }
         }
         End = true
