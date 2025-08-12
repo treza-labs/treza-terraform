@@ -247,20 +247,4 @@ jobs:
         echo "2. Test the end-to-end workflow" >> $GITHUB_STEP_SUMMARY
         echo "3. Monitor CloudWatch for deployment status" >> $GITHUB_STEP_SUMMARY
 
-    - name: Comment on commit
-      if: github.event.inputs.auto_approve == 'true' || github.event_name == 'push'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          github.rest.repos.createCommitComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            commit_sha: context.sha,
-            body: `🎉 **Treza Infrastructure Deployed Successfully!**
-            
-            **Environment**: ${{ github.event.inputs.environment || 'dev' }}
-            **Region**: us-west-2
-            **Status**: ✅ Complete
-            
-            The infrastructure is ready for enclave creation testing!`
-          })
+        # Comment step removed due to permissions - deployment success shown in workflow summary instead
