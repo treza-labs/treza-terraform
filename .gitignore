@@ -20,6 +20,7 @@ override.tf.json
 lambda/*/builds/
 # modules/lambda/builds/  # Allow pre-built Lambda zip files
 *.zip
+!modules/lambda/builds/*.zip  # Exception: include pre-built Lambda zip files
 
 # Docker
 .dockerignore
