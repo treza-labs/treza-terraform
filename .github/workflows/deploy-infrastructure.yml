@@ -86,6 +86,19 @@ jobs:
         terraform import module.iam.aws_iam_role.ecs_task treza-${{ github.event.inputs.environment || 'dev' }}-ecs-task-role || echo "ECS task role: skipped"
         terraform import module.state_backend.aws_dynamodb_table.terraform_locks treza-${{ github.event.inputs.environment || 'dev' }}-terraform-locks || echo "State lock table: skipped"
         
+        # Import CloudWatch Log Groups
+        terraform import module.ecs.aws_cloudwatch_log_group.terraform_runner /ecs/treza-${{ github.event.inputs.environment || 'dev' }}-terraform-runner || echo "ECS log group: skipped"
+        terraform import module.step_functions.aws_cloudwatch_log_group.step_functions /aws/stepfunctions/treza-${{ github.event.inputs.environment || 'dev' }}-deployment || echo "Step Functions log group: skipped"
+        
+        # Import Lambda Functions
+        terraform import module.lambda_functions.aws_lambda_function.validation treza-${{ github.event.inputs.environment || 'dev' }}-validation || echo "Validation Lambda: skipped"
+        terraform import module.lambda_functions.aws_lambda_function.error_handler treza-${{ github.event.inputs.environment || 'dev' }}-error-handler || echo "Error handler Lambda: skipped"
+        terraform import module.lambda_functions.aws_lambda_function.enclave_trigger treza-${{ github.event.inputs.environment || 'dev' }}-enclave-trigger || echo "Enclave trigger Lambda: skipped"
+        
+        # Import CloudWatch Query Definitions (these use the query name as ID)
+        terraform import module.monitoring.aws_cloudwatch_query_definition.terraform_errors treza-${{ github.event.inputs.environment || 'dev' }}-terraform-errors || echo "Terraform errors query: skipped"
+        terraform import module.monitoring.aws_cloudwatch_query_definition.deployment_duration treza-${{ github.event.inputs.environment || 'dev' }}-deployment-duration || echo "Deployment duration query: skipped"
+        
         echo "✅ Import phase completed"
       continue-on-error: true
     
