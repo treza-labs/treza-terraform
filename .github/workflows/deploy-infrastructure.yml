@@ -72,11 +72,21 @@ jobs:
         cd terraform
         terraform init -backend-config=backend.conf
     
-    - name: Import existing ECR repository if it exists
+    - name: Import existing resources if they exist
       run: |
         cd terraform
-        # Try to import the ECR repository if it already exists
-        terraform import module.ecs.aws_ecr_repository.terraform_runner treza-${{ github.event.inputs.environment || 'dev' }}-terraform-runner || echo "ECR repository doesn't exist or already imported"
+        echo "🔄 Importing existing resources to avoid conflicts..."
+        
+        # Import existing resources (ignore errors if they don't exist or are already imported)
+        terraform import module.ecs.aws_ecr_repository.terraform_runner treza-${{ github.event.inputs.environment || 'dev' }}-terraform-runner || echo "ECR repository: skipped"
+        terraform import module.dynamodb_streams.aws_dynamodb_table.enclaves treza-enclaves-${{ github.event.inputs.environment || 'dev' }} || echo "DynamoDB table: skipped"
+        terraform import module.iam.aws_iam_role.lambda_execution treza-${{ github.event.inputs.environment || 'dev' }}-lambda-execution-role || echo "Lambda IAM role: skipped"
+        terraform import module.iam.aws_iam_role.step_functions_execution treza-${{ github.event.inputs.environment || 'dev' }}-step-functions-execution-role || echo "Step Functions IAM role: skipped"
+        terraform import module.iam.aws_iam_role.ecs_task_execution treza-${{ github.event.inputs.environment || 'dev' }}-ecs-task-execution-role || echo "ECS task execution role: skipped"
+        terraform import module.iam.aws_iam_role.ecs_task treza-${{ github.event.inputs.environment || 'dev' }}-ecs-task-role || echo "ECS task role: skipped"
+        terraform import module.state_backend.aws_dynamodb_table.terraform_locks treza-${{ github.event.inputs.environment || 'dev' }}-terraform-locks || echo "State lock table: skipped"
+        
+        echo "✅ Import phase completed"
       continue-on-error: true
     
     - name: Validate Terraform

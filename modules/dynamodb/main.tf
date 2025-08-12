@@ -6,6 +6,13 @@ resource "aws_dynamodb_table" "enclaves" {
   stream_enabled = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
   
+  lifecycle {
+    ignore_changes = [
+      # Ignore changes that might cause unnecessary recreations
+      stream_view_type,
+    ]
+  }
+  
   attribute {
     name = "id"
     type = "S"
