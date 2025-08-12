@@ -12,7 +12,7 @@ existing_dynamodb_table_name = "treza-enclaves-dev"
 
 # Networking Configuration
 vpc_cidr           = "10.0.0.0/16"
-availability_zones = ["us-west-2a", "us-west-2b"]
+availability_zones = ["us-west-2a"]  # Single AZ for dev to avoid EIP limits
 
 # ECS Configuration - Small instances for dev
 ecs_cluster_name        = "treza-dev-infrastructure"
