@@ -109,6 +109,15 @@ jobs:
             fi
           done
           
+          # Import Elastic IPs first (needed for NAT Gateways)
+          EIP_ALLOC_IDS=$(aws ec2 describe-addresses --filters "Name=domain,Values=vpc" --query 'Addresses[].AllocationId' --output text 2>/dev/null || echo "")
+          for i in $(echo $EIP_ALLOC_IDS | tr ' ' '\n' | head -1); do
+            if [ ! -z "$i" ] && [ "$i" != "None" ]; then
+              terraform import module.networking.aws_eip.nat[0] $i || echo "EIP import: skipped"
+              break
+            fi
+          done
+          
           # Import NAT Gateways to prevent subnet deletion issues
           NAT_GW_IDS=$(aws ec2 describe-nat-gateways --filter "Name=vpc-id,Values=$VPC_ID" "Name=state,Values=available" --query 'NatGateways[].NatGatewayId' --output text 2>/dev/null || echo "")
           for i in $(echo $NAT_GW_IDS | tr ' ' '\n' | head -1); do
@@ -159,14 +168,7 @@ jobs:
         terraform import module.step_functions.aws_sfn_state_machine.deployment treza-${{ github.event.inputs.environment || 'dev' }}-deployment || echo "Deployment state machine: skipped"
         terraform import module.step_functions.aws_sfn_state_machine.cleanup treza-${{ github.event.inputs.environment || 'dev' }}-cleanup || echo "Cleanup state machine: skipped"
         
-        # Import Elastic IPs (NAT Gateway EIPs) - these are harder to predict, so we'll handle them differently
-        echo "📋 Checking for existing Elastic IPs..."
-        aws ec2 describe-addresses --query 'Addresses[?Domain==`vpc`].AllocationId' --output text | head -2 | while read -r allocation_id; do
-          if [ ! -z "$allocation_id" ]; then
-            terraform import module.networking.aws_eip.nat[0] $allocation_id 2>/dev/null || echo "EIP import attempted"
-            break
-          fi
-        done
+        # EIPs are now imported above with the networking components
         
         echo "✅ Import phase completed"
       continue-on-error: true

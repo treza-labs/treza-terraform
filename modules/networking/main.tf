@@ -72,6 +72,10 @@ resource "aws_eip" "nat" {
   })
 
   depends_on = [aws_internet_gateway.main]
+  
+  lifecycle {
+    ignore_changes = [domain]
+  }
 }
 
 resource "aws_nat_gateway" "main" {
