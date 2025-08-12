@@ -77,6 +77,13 @@ jobs:
         cd terraform
         echo "🔄 Importing existing resources to avoid conflicts..."
         
+        # Get existing VPC ID and import it
+        echo "📋 Finding existing VPC..."
+        VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=treza-${{ github.event.inputs.environment || 'dev' }}-vpc" --query 'Vpcs[0].VpcId' --output text 2>/dev/null || echo "")
+        if [ "$VPC_ID" != "None" ] && [ ! -z "$VPC_ID" ]; then
+          terraform import module.networking.aws_vpc.main $VPC_ID || echo "VPC import: skipped"
+        fi
+        
         # Import existing resources (ignore errors if they don't exist or are already imported)
         terraform import module.ecs.aws_ecr_repository.terraform_runner treza-${{ github.event.inputs.environment || 'dev' }}-terraform-runner || echo "ECR repository: skipped"
         terraform import module.dynamodb_streams.aws_dynamodb_table.enclaves treza-enclaves-${{ github.event.inputs.environment || 'dev' }} || echo "DynamoDB table: skipped"
@@ -95,9 +102,7 @@ jobs:
         terraform import module.lambda_functions.aws_lambda_function.error_handler treza-${{ github.event.inputs.environment || 'dev' }}-error-handler || echo "Error handler Lambda: skipped"
         terraform import module.lambda_functions.aws_lambda_function.enclave_trigger treza-${{ github.event.inputs.environment || 'dev' }}-enclave-trigger || echo "Enclave trigger Lambda: skipped"
         
-        # Import CloudWatch Query Definitions (these use the query name as ID)
-        terraform import module.monitoring.aws_cloudwatch_query_definition.terraform_errors treza-${{ github.event.inputs.environment || 'dev' }}-terraform-errors || echo "Terraform errors query: skipped"
-        terraform import module.monitoring.aws_cloudwatch_query_definition.deployment_duration treza-${{ github.event.inputs.environment || 'dev' }}-deployment-duration || echo "Deployment duration query: skipped"
+        # Skip CloudWatch Query Definitions - they'll be handled differently
         
         # Import Lambda CloudWatch Log Groups
         terraform import module.lambda_functions.aws_cloudwatch_log_group.validation /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-validation || echo "Validation Lambda log group: skipped"

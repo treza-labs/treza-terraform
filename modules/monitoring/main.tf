@@ -115,6 +115,10 @@ fields @timestamp, @message
 | sort @timestamp desc
 | limit 50
 EOF
+
+  lifecycle {
+    ignore_changes = [query_string]
+  }
 }
 
 resource "aws_cloudwatch_query_definition" "deployment_duration" {
@@ -129,6 +133,10 @@ fields @timestamp, @message
 | filter @type = "ExecutionSucceeded" or @type = "ExecutionFailed"
 | stats count() by bin(5m)
 EOF
+
+  lifecycle {
+    ignore_changes = [query_string]
+  }
 }
 
 # Optional SNS Topic for Alerts (if notifications are needed)
