@@ -89,6 +89,11 @@ resource "aws_ecr_repository" "terraform_runner" {
     scan_on_push = true
   }
   
+  # Handle case where repository already exists from previous runs
+  lifecycle {
+    ignore_changes = [name]
+  }
+  
   tags = var.tags
 }
 

@@ -140,15 +140,6 @@ resource "aws_security_group" "terraform_runner" {
     description = "HTTP outbound"
   }
 
-  # AWS API access
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "AWS API access"
-  }
-
   tags = merge(var.tags, {
     Name = "${var.name_prefix}-terraform-runner-sg"
   })
