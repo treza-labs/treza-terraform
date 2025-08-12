@@ -31,6 +31,13 @@ resource "aws_subnet" "public" {
     Name = "${var.name_prefix}-public-subnet-${count.index + 1}"
     Type = "public"
   })
+
+  lifecycle {
+    ignore_changes = [
+      cidr_block,
+      availability_zone
+    ]
+  }
 }
 
 # Private Subnets
@@ -45,6 +52,13 @@ resource "aws_subnet" "private" {
     Name = "${var.name_prefix}-private-subnet-${count.index + 1}"
     Type = "private"
   })
+
+  lifecycle {
+    ignore_changes = [
+      cidr_block,
+      availability_zone
+    ]
+  }
 }
 
 # NAT Gateways

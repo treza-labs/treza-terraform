@@ -108,6 +108,26 @@ jobs:
               break
             fi
           done
+          
+          # Import NAT Gateways to prevent subnet deletion issues
+          NAT_GW_IDS=$(aws ec2 describe-nat-gateways --filter "Name=vpc-id,Values=$VPC_ID" "Name=state,Values=available" --query 'NatGateways[].NatGatewayId' --output text 2>/dev/null || echo "")
+          for i in $(echo $NAT_GW_IDS | tr ' ' '\n' | head -1); do
+            if [ ! -z "$i" ] && [ "$i" != "None" ]; then
+              terraform import module.networking.aws_nat_gateway.main[0] $i || echo "NAT Gateway import: skipped"
+              break
+            fi
+          done
+          
+          # Import Route Tables
+          PUBLIC_RT_ID=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=*public*" --query 'RouteTables[0].RouteTableId' --output text 2>/dev/null || echo "")
+          if [ "$PUBLIC_RT_ID" != "None" ] && [ ! -z "$PUBLIC_RT_ID" ]; then
+            terraform import module.networking.aws_route_table.public $PUBLIC_RT_ID || echo "Public route table import: skipped"
+          fi
+          
+          PRIVATE_RT_ID=$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=*private*" --query 'RouteTables[0].RouteTableId' --output text 2>/dev/null || echo "")
+          if [ "$PRIVATE_RT_ID" != "None" ] && [ ! -z "$PRIVATE_RT_ID" ]; then
+            terraform import module.networking.aws_route_table.private[0] $PRIVATE_RT_ID || echo "Private route table import: skipped"
+          fi
         fi
         
         # Import existing resources (ignore errors if they don't exist or are already imported)
