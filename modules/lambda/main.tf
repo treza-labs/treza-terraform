@@ -21,14 +21,14 @@ resource "aws_lambda_function" "enclave_trigger" {
 
 # Validation Lambda Function
 resource "aws_lambda_function" "validation" {
-  filename         = data.archive_file.validation_zip.output_path
+  filename         = local.validation_zip_path
   function_name    = "${var.name_prefix}-validation"
   role            = var.lambda_execution_role_arn
   handler         = "index.handler"
   runtime         = "python3.9"
   timeout         = 300
   
-  source_code_hash = data.archive_file.validation_zip.output_base64sha256
+  source_code_hash = filebase64sha256(local.validation_zip_path)
   
   environment {
     variables = {
@@ -41,14 +41,14 @@ resource "aws_lambda_function" "validation" {
 
 # Error Handler Lambda Function
 resource "aws_lambda_function" "error_handler" {
-  filename         = data.archive_file.error_handler_zip.output_path
+  filename         = local.error_handler_zip_path
   function_name    = "${var.name_prefix}-error-handler"
   role            = var.lambda_execution_role_arn
   handler         = "index.handler"
   runtime         = "python3.9"
   timeout         = 60
   
-  source_code_hash = data.archive_file.error_handler_zip.output_base64sha256
+  source_code_hash = filebase64sha256(local.error_handler_zip_path)
   
   environment {
     variables = {
@@ -66,16 +66,10 @@ data "archive_file" "enclave_trigger_zip" {
   output_path = "${path.module}/builds/enclave-trigger.zip"
 }
 
-data "archive_file" "validation_zip" {
-  type        = "zip"
-  source_dir  = "${path.root}/../lambda/validation"
-  output_path = "${path.module}/builds/validation.zip"
-}
-
-data "archive_file" "error_handler_zip" {
-  type        = "zip"
-  source_dir  = "${path.root}/../lambda/error_handler"
-  output_path = "${path.module}/builds/error-handler.zip"
+# Use pre-built zip files with dependencies from build script
+locals {
+  validation_zip_path = "${path.module}/builds/validation.zip"
+  error_handler_zip_path = "${path.module}/builds/error_handler.zip"
 }
 
 # CloudWatch Log Groups
