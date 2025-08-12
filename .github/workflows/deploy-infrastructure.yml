@@ -77,11 +77,37 @@ jobs:
         cd terraform
         echo "🔄 Importing existing resources to avoid conflicts..."
         
-        # Get existing VPC ID and import it
-        echo "📋 Finding existing VPC..."
+        # Import all existing networking components
+        echo "📋 Finding and importing existing networking resources..."
+        
+        # Import VPC
         VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=treza-${{ github.event.inputs.environment || 'dev' }}-vpc" --query 'Vpcs[0].VpcId' --output text 2>/dev/null || echo "")
         if [ "$VPC_ID" != "None" ] && [ ! -z "$VPC_ID" ]; then
           terraform import module.networking.aws_vpc.main $VPC_ID || echo "VPC import: skipped"
+          
+          # Import Internet Gateway
+          IGW_ID=$(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$VPC_ID" --query 'InternetGateways[0].InternetGatewayId' --output text 2>/dev/null || echo "")
+          if [ "$IGW_ID" != "None" ] && [ ! -z "$IGW_ID" ]; then
+            terraform import module.networking.aws_internet_gateway.main $IGW_ID || echo "IGW import: skipped"
+          fi
+          
+          # Import public subnets
+          PUBLIC_SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=*public*" --query 'Subnets[].SubnetId' --output text 2>/dev/null || echo "")
+          for i in $(echo $PUBLIC_SUBNET_IDS | tr ' ' '\n' | head -1); do
+            if [ ! -z "$i" ] && [ "$i" != "None" ]; then
+              terraform import module.networking.aws_subnet.public[0] $i || echo "Public subnet import: skipped"
+              break
+            fi
+          done
+          
+          # Import private subnets  
+          PRIVATE_SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" "Name=tag:Name,Values=*private*" --query 'Subnets[].SubnetId' --output text 2>/dev/null || echo "")
+          for i in $(echo $PRIVATE_SUBNET_IDS | tr ' ' '\n' | head -1); do
+            if [ ! -z "$i" ] && [ "$i" != "None" ]; then
+              terraform import module.networking.aws_subnet.private[0] $i || echo "Private subnet import: skipped"
+              break
+            fi
+          done
         fi
         
         # Import existing resources (ignore errors if they don't exist or are already imported)

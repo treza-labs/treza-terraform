@@ -100,44 +100,46 @@ resource "aws_cloudwatch_metric_alarm" "ecs_task_failures" {
   tags = var.tags
 }
 
-# CloudWatch Log Insights Queries
-resource "aws_cloudwatch_query_definition" "terraform_errors" {
-  name = "${var.name_prefix}-terraform-errors"
-  
-  log_group_names = [
-    "/aws/stepfunctions/${var.name_prefix}-deployment",
-    "/ecs/${var.name_prefix}-terraform-runner"
-  ]
-  
-  query_string = <<EOF
-fields @timestamp, @message
-| filter @message like /ERROR/
-| sort @timestamp desc
-| limit 50
-EOF
+# CloudWatch Log Insights Queries - Temporarily disabled to avoid conflicts
+# Will be re-enabled after successful infrastructure deployment
 
-  lifecycle {
-    ignore_changes = [query_string]
-  }
-}
-
-resource "aws_cloudwatch_query_definition" "deployment_duration" {
-  name = "${var.name_prefix}-deployment-duration"
-  
-  log_group_names = [
-    "/aws/stepfunctions/${var.name_prefix}-deployment"
-  ]
-  
-  query_string = <<EOF
-fields @timestamp, @message
-| filter @type = "ExecutionSucceeded" or @type = "ExecutionFailed"
-| stats count() by bin(5m)
-EOF
-
-  lifecycle {
-    ignore_changes = [query_string]
-  }
-}
+# resource "aws_cloudwatch_query_definition" "terraform_errors" {
+#   name = "${var.name_prefix}-terraform-errors"
+#   
+#   log_group_names = [
+#     "/aws/stepfunctions/${var.name_prefix}-deployment",
+#     "/ecs/${var.name_prefix}-terraform-runner"
+#   ]
+#   
+#   query_string = <<EOF
+# fields @timestamp, @message
+# | filter @message like /ERROR/
+# | sort @timestamp desc
+# | limit 50
+# EOF
+# 
+#   lifecycle {
+#     ignore_changes = [query_string]
+#   }
+# }
+# 
+# resource "aws_cloudwatch_query_definition" "deployment_duration" {
+#   name = "${var.name_prefix}-deployment-duration"
+#   
+#   log_group_names = [
+#     "/aws/stepfunctions/${var.name_prefix}-deployment"
+#   ]
+#   
+#   query_string = <<EOF
+# fields @timestamp, @message
+# | filter @type = "ExecutionSucceeded" or @type = "ExecutionFailed"
+# | stats count() by bin(5m)
+# EOF
+# 
+#   lifecycle {
+#     ignore_changes = [query_string]
+#   }
+# }
 
 # Optional SNS Topic for Alerts (if notifications are needed)
 resource "aws_sns_topic" "alerts" {
