@@ -2,7 +2,7 @@ import json
 import boto3
 import os
 import logging
-from jsonschema import validate, ValidationError
+from jsonschema import validate, ValidationError  # Required: jsonschema==4.20.0
 
 # Configure logging
 logger = logging.getLogger()
