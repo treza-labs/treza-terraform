@@ -1,0 +1,133 @@
+name: Deploy Treza Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+      auto_approve:
+        description: 'Auto approve deployment'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  deploy-infrastructure:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.6
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2
+    
+    - name: Setup environment configuration
+      run: |
+        cd terraform
+        cp environments/${{ github.event.inputs.environment }}.tfvars terraform.tfvars
+        cp environments/backend-${{ github.event.inputs.environment }}.conf backend.conf
+        
+        echo "📋 Environment: ${{ github.event.inputs.environment }}"
+        echo "📋 Configuration:"
+        head -10 terraform.tfvars
+    
+    - name: Create backend resources if needed
+      run: |
+        echo "🏗️ Creating backend resources..."
+        ./scripts/create-backend.sh ${{ github.event.inputs.environment }}
+    
+    - name: Build Lambda functions
+      run: |
+        echo "📦 Building Lambda functions..."
+        ./modules/lambda/build-functions.sh
+    
+    - name: Initialize Terraform
+      run: |
+        cd terraform
+        terraform init -backend-config=backend.conf
+    
+    - name: Validate Terraform
+      run: |
+        cd terraform
+        terraform validate
+    
+    - name: Plan Terraform
+      run: |
+        cd terraform
+        terraform plan -out=tfplan
+    
+    - name: Apply Terraform
+      if: github.event.inputs.auto_approve == 'true'
+      run: |
+        cd terraform
+        terraform apply -auto-approve tfplan
+    
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Login to Amazon ECR
+      run: |
+        aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com
+    
+    - name: Build and push Docker image
+      run: |
+        cd docker/terraform-runner
+        IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/treza-${{ github.event.inputs.environment }}-terraform-runner:latest"
+        docker build -t $IMAGE_URI .
+        docker push $IMAGE_URI
+        echo "✅ Docker image pushed: $IMAGE_URI"
+    
+    - name: Output results
+      if: github.event.inputs.auto_approve == 'true'
+      run: |
+        cd terraform
+        echo "## 🎉 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Region**: us-west-2" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Infrastructure Outputs:" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        terraform output || echo "Outputs will be available shortly" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Update your treza-app DynamoDB table name" >> $GITHUB_STEP_SUMMARY
+        echo "2. Test the end-to-end workflow" >> $GITHUB_STEP_SUMMARY
+        echo "3. Monitor CloudWatch for deployment status" >> $GITHUB_STEP_SUMMARY
+
+    - name: Comment on commit
+      if: github.event.inputs.auto_approve == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.repos.createCommitComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: context.sha,
+            body: `🎉 **Treza Infrastructure Deployed Successfully!**
+            
+            **Environment**: ${{ github.event.inputs.environment }}
+            **Region**: us-west-2
+            **Status**: ✅ Complete
+            
+            The infrastructure is ready for enclave creation testing!`
+          })
