@@ -11,11 +11,13 @@ resource "aws_sfn_state_machine" "deployment" {
   name     = "${var.name_prefix}-deployment"
   role_arn = var.step_functions_role_arn
   
-  logging_configuration {
-    log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
-    include_execution_data = true
-    level                  = "ALL"
-  }
+  # Temporarily disabled logging configuration to resolve IAM permissions issue
+  # Will be re-enabled after initial deployment
+  # logging_configuration {
+  #   log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
+  #   include_execution_data = true
+  #   level                  = "ALL"
+  # }
   
   definition = jsonencode({
     Comment = "Treza Enclave Deployment Workflow"
@@ -251,11 +253,13 @@ resource "aws_sfn_state_machine" "cleanup" {
   name     = "${var.name_prefix}-cleanup"
   role_arn = var.step_functions_role_arn
   
-  logging_configuration {
-    log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
-    include_execution_data = true
-    level                  = "ALL"
-  }
+  # Temporarily disabled logging configuration to resolve IAM permissions issue
+  # Will be re-enabled after initial deployment
+  # logging_configuration {
+  #   log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
+  #   include_execution_data = true
+  #   level                  = "ALL"
+  # }
   
   definition = jsonencode({
     Comment = "Treza Enclave Cleanup Workflow"
