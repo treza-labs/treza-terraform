@@ -7,8 +7,7 @@ resource "aws_lambda_function" "enclave_trigger" {
   runtime         = "python3.9"
   timeout         = 60
   
-  source_code_hash = filebase64sha256(local.enclave_trigger_zip_path)
-  depends_on       = [null_resource.build_lambda_functions]
+  source_code_hash = data.external.lambda_build.result.status != "" ? filebase64sha256(local.enclave_trigger_zip_path) : null
   
   environment {
     variables = {
@@ -29,8 +28,7 @@ resource "aws_lambda_function" "validation" {
   runtime         = "python3.9"
   timeout         = 300
   
-  source_code_hash = filebase64sha256(local.validation_zip_path)
-  depends_on       = [null_resource.build_lambda_functions]
+  source_code_hash = data.external.lambda_build.result.status != "" ? filebase64sha256(local.validation_zip_path) : null
   
   environment {
     variables = {
@@ -50,8 +48,7 @@ resource "aws_lambda_function" "error_handler" {
   runtime         = "python3.9"
   timeout         = 60
   
-  source_code_hash = filebase64sha256(local.error_handler_zip_path)
-  depends_on       = [null_resource.build_lambda_functions]
+  source_code_hash = data.external.lambda_build.result.status != "" ? filebase64sha256(local.error_handler_zip_path) : null
   
   environment {
     variables = {
@@ -63,23 +60,9 @@ resource "aws_lambda_function" "error_handler" {
 }
 
 # Create ZIP files for Lambda functions
-# Build Lambda functions with dependencies
-resource "null_resource" "build_lambda_functions" {
-  triggers = {
-    # Rebuild when any Lambda source files change
-    enclave_trigger_code = filemd5("${path.root}/../lambda/enclave_trigger/index.py")
-    enclave_trigger_reqs = filemd5("${path.root}/../lambda/enclave_trigger/requirements.txt")
-    validation_code      = filemd5("${path.root}/../lambda/validation/index.py")
-    validation_reqs      = filemd5("${path.root}/../lambda/validation/requirements.txt")
-    error_handler_code   = filemd5("${path.root}/../lambda/error_handler/index.py")
-    error_handler_reqs   = filemd5("${path.root}/../lambda/error_handler/requirements.txt")
-    build_script        = filemd5("${path.module}/build-functions.sh")
-  }
-
-  provisioner "local-exec" {
-    command     = "./build-functions.sh"
-    working_dir = path.module
-  }
+# Data source to trigger Lambda build before planning
+data "external" "lambda_build" {
+  program = ["bash", "-c", "cd ${path.module} && ./build-functions.sh >/dev/null 2>&1 && echo '{\"status\":\"built\"}'"]
 }
 
 # Lambda functions use pre-built zip files from build script
