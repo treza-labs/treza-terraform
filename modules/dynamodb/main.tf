@@ -19,8 +19,21 @@ resource "aws_dynamodb_table" "enclaves" {
     projection_type = "ALL"
   }
   
+  # Add GSI for wallet address queries
+  global_secondary_index {
+    name     = "WalletIndex"
+    hash_key = "walletAddress"
+    
+    projection_type = "ALL"
+  }
+  
   attribute {
     name = "status"
+    type = "S"
+  }
+  
+  attribute {
+    name = "walletAddress"
     type = "S"
   }
   
