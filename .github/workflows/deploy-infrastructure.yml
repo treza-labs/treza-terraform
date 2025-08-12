@@ -42,8 +42,8 @@ jobs:
     - name: Setup environment configuration
       run: |
         cd terraform
-        cp environments/${{ github.event.inputs.environment }}.tfvars terraform.tfvars
-        cp environments/backend-${{ github.event.inputs.environment }}.conf backend.conf
+        cp terraform/environments/${{ github.event.inputs.environment }}.tfvars terraform.tfvars
+        cp terraform/environments/backend-${{ github.event.inputs.environment }}.conf backend.conf
         
         echo "📋 Environment: ${{ github.event.inputs.environment }}"
         echo "📋 Configuration:"
