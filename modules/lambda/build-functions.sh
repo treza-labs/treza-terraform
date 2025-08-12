@@ -34,7 +34,9 @@ build_function() {
     # Install dependencies if requirements.txt exists
     if [ -f "$temp_dir/requirements.txt" ]; then
         echo "Installing dependencies for $function_name..."
-        pip3 install -r "$temp_dir/requirements.txt" -t "$temp_dir/" --quiet
+        # Install dependencies directly into the source directory for archive_file to use
+        pip3 install -r "$temp_dir/requirements.txt" -t "$src_dir/" --upgrade --quiet 2>/dev/null || \
+        pip3 install -r "$temp_dir/requirements.txt" -t "$src_dir/" --quiet
     fi
     
     # Remove unnecessary files
