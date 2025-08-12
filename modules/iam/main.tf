@@ -135,9 +135,15 @@ resource "aws_iam_role_policy" "step_functions_execution" {
           "logs:GetLogDelivery",
           "logs:UpdateLogDelivery",
           "logs:DeleteLogDelivery",
-          "logs:ListLogDeliveries"
+          "logs:ListLogDeliveries",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams"
         ]
-        Resource = "*"
+        Resource = [
+          "*",
+          "arn:aws:logs:*:*:log-group:/aws/stepfunctions/${var.name_prefix}-*",
+          "arn:aws:logs:*:*:log-group:/aws/stepfunctions/${var.name_prefix}-*:*"
+        ]
       },
       {
         Effect = "Allow"
