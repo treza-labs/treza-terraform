@@ -25,7 +25,7 @@ module "iam" {
   source = "../modules/iam"
   
   name_prefix           = local.name_prefix
-  dynamodb_table_arn    = data.aws_dynamodb_table.enclaves.arn
+  dynamodb_table_arn    = module.dynamodb_streams.table_arn
   s3_state_bucket_name  = module.state_backend.bucket_name
   tags                  = local.common_tags
 }
