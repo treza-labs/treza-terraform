@@ -9,10 +9,7 @@ locals {
   })
 }
 
-# Data source for existing DynamoDB table
-data "aws_dynamodb_table" "enclaves" {
-  name = var.existing_dynamodb_table_name
-}
+# DynamoDB table will be created by the dynamodb_streams module
 
 # Core Infrastructure Modules
 module "networking" {

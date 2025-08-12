@@ -1,28 +1,27 @@
-# Enable DynamoDB Streams on existing table
-resource "aws_dynamodb_table" "enclaves_streams" {
-  count = var.enable_streams ? 1 : 0
-  
+# Create or use existing DynamoDB table for enclaves
+resource "aws_dynamodb_table" "enclaves" {
   name           = var.table_name
   billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "id"
   stream_enabled = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
   
-  # We're not creating a new table, just enabling streams
-  # This is a workaround for enabling streams on existing table
-  lifecycle {
-    ignore_changes = [
-      attribute,
-      global_secondary_index,
-      local_secondary_index,
-      ttl,
-      billing_mode,
-      read_capacity,
-      write_capacity,
-      point_in_time_recovery,
-      server_side_encryption,
-      tags,
-      tags_all
-    ]
+  attribute {
+    name = "id"
+    type = "S"
+  }
+  
+  # Add GSI for status queries
+  global_secondary_index {
+    name     = "status-index"
+    hash_key = "status"
+    
+    projection_type = "ALL"
+  }
+  
+  attribute {
+    name = "status"
+    type = "S"
   }
   
   tags = var.tags
@@ -30,7 +29,7 @@ resource "aws_dynamodb_table" "enclaves_streams" {
 
 # Event Source Mapping for Lambda trigger
 resource "aws_lambda_event_source_mapping" "dynamodb_stream" {
-  event_source_arn  = var.enable_streams ? aws_dynamodb_table.enclaves_streams[0].stream_arn : data.aws_dynamodb_table.existing.stream_arn
+  event_source_arn  = aws_dynamodb_table.enclaves.stream_arn
   function_name     = var.lambda_trigger_arn
   starting_position = "LATEST"
   
@@ -50,9 +49,4 @@ resource "aws_lambda_event_source_mapping" "dynamodb_stream" {
   }
   
   depends_on = [var.lambda_trigger_arn]
-}
-
-# Data source for existing DynamoDB table
-data "aws_dynamodb_table" "existing" {
-  name = var.table_name
 }

@@ -1,16 +1,16 @@
 output "table_arn" {
   description = "ARN of the DynamoDB table"
-  value       = data.aws_dynamodb_table.existing.arn
+  value       = aws_dynamodb_table.enclaves.arn
 }
 
 output "table_name" {
   description = "Name of the DynamoDB table"
-  value       = data.aws_dynamodb_table.existing.name
+  value       = aws_dynamodb_table.enclaves.name
 }
 
 output "stream_arn" {
   description = "ARN of the DynamoDB stream"
-  value       = data.aws_dynamodb_table.existing.stream_arn
+  value       = aws_dynamodb_table.enclaves.stream_arn
 }
 
 output "event_source_mapping_uuid" {
