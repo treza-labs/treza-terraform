@@ -41,21 +41,11 @@ jobs:
     
     - name: Setup environment configuration
       run: |
-        echo "🔍 Debugging paths..."
-        ls -la
-        echo "📁 Terraform directory contents:"
-        ls -la terraform/
-        echo "📁 Environment files:"
-        ls -la terraform/environments/
-        echo ""
-        
         cd terraform
-        echo "📋 Environment: ${{ github.event.inputs.environment }}"
-        echo "🎯 Copying environment files..."
         cp environments/${{ github.event.inputs.environment }}.tfvars terraform.tfvars
         cp environments/backend-${{ github.event.inputs.environment }}.conf backend.conf
         
-        echo "✅ Files copied successfully"
+        echo "📋 Environment: ${{ github.event.inputs.environment }}"
         echo "📋 Configuration:"
         head -10 terraform.tfvars
     
