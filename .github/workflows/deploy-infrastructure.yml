@@ -1,6 +1,14 @@
 name: Deploy Treza Infrastructure
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'lambda/**'
+      - 'modules/**'
+      - 'terraform/**'
+      - '.github/workflows/**'
   workflow_dispatch:
     inputs:
       environment:
@@ -21,7 +29,7 @@ on:
 jobs:
   deploy-infrastructure:
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment }}
+    environment: ${{ github.event.inputs.environment || 'dev' }}
     
     steps:
     - name: Checkout code
@@ -42,17 +50,17 @@ jobs:
     - name: Setup environment configuration
       run: |
         cd terraform
-        cp environments/${{ github.event.inputs.environment }}.tfvars terraform.tfvars
-        cp environments/backend-${{ github.event.inputs.environment }}.conf backend.conf
+        cp environments/${{ github.event.inputs.environment || 'dev' }}.tfvars terraform.tfvars
+        cp environments/backend-${{ github.event.inputs.environment || 'dev' }}.conf backend.conf
         
-        echo "📋 Environment: ${{ github.event.inputs.environment }}"
+        echo "📋 Environment: ${{ github.event.inputs.environment || 'dev' }}"
         echo "📋 Configuration:"
         head -10 terraform.tfvars
     
     - name: Create backend resources if needed
       run: |
         echo "🏗️ Creating backend resources..."
-        ./scripts/create-backend.sh ${{ github.event.inputs.environment }}
+        ./scripts/create-backend.sh ${{ github.event.inputs.environment || 'dev' }}
     
     - name: Build Lambda functions
       run: |
@@ -68,7 +76,7 @@ jobs:
       run: |
         cd terraform
         # Try to import the ECR repository if it already exists
-        terraform import module.ecs.aws_ecr_repository.terraform_runner treza-${{ github.event.inputs.environment }}-terraform-runner || echo "ECR repository doesn't exist or already imported"
+        terraform import module.ecs.aws_ecr_repository.terraform_runner treza-${{ github.event.inputs.environment || 'dev' }}-terraform-runner || echo "ECR repository doesn't exist or already imported"
       continue-on-error: true
     
     - name: Validate Terraform
@@ -82,7 +90,7 @@ jobs:
         terraform plan -out=tfplan
     
     - name: Apply Terraform
-      if: github.event.inputs.auto_approve == 'true'
+      if: github.event.inputs.auto_approve == 'true' || github.event_name == 'push'
       run: |
         cd terraform
         terraform apply -auto-approve tfplan
@@ -97,18 +105,18 @@ jobs:
     - name: Build and push Docker image
       run: |
         cd docker/terraform-runner
-        IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/treza-${{ github.event.inputs.environment }}-terraform-runner:latest"
+        IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/treza-${{ github.event.inputs.environment || 'dev' }}-terraform-runner:latest"
         docker build -t $IMAGE_URI .
         docker push $IMAGE_URI
         echo "✅ Docker image pushed: $IMAGE_URI"
     
     - name: Output results
-      if: github.event.inputs.auto_approve == 'true'
+      if: github.event.inputs.auto_approve == 'true' || github.event_name == 'push'
       run: |
         cd terraform
         echo "## 🎉 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment**: ${{ github.event.inputs.environment || 'dev' }}" >> $GITHUB_STEP_SUMMARY
         echo "**Region**: us-west-2" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📋 Infrastructure Outputs:" >> $GITHUB_STEP_SUMMARY
@@ -122,7 +130,7 @@ jobs:
         echo "3. Monitor CloudWatch for deployment status" >> $GITHUB_STEP_SUMMARY
 
     - name: Comment on commit
-      if: github.event.inputs.auto_approve == 'true'
+      if: github.event.inputs.auto_approve == 'true' || github.event_name == 'push'
       uses: actions/github-script@v7
       with:
         script: |
@@ -132,7 +140,7 @@ jobs:
             commit_sha: context.sha,
             body: `🎉 **Treza Infrastructure Deployed Successfully!**
             
-            **Environment**: ${{ github.event.inputs.environment }}
+            **Environment**: ${{ github.event.inputs.environment || 'dev' }}
             **Region**: us-west-2
             **Status**: ✅ Complete
             

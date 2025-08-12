@@ -18,7 +18,8 @@ terraform {
   
   backend "s3" {
     # Backend configuration will be provided via backend config file
-    # or environment variables during terraform init
+    # Configuration is loaded from environments/backend-{env}.conf
+    encrypt = true
   }
 }
 
