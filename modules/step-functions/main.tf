@@ -237,8 +237,9 @@ resource "aws_sfn_state_machine" "deployment" {
           FunctionName = var.error_handler_lambda_arn
           Payload = {
             "execution_name.$" = "$$.Execution.Name"
-            "error.$" = "$.error"
+            "execution_arn.$" = "$$.Execution.Name"
             "state_machine.$" = "$$.StateMachine.Name"
+            "error_message" = "Step Functions execution failed"
           }
         }
         End = true
@@ -434,8 +435,9 @@ resource "aws_sfn_state_machine" "cleanup" {
           FunctionName = var.error_handler_lambda_arn
           Payload = {
             "execution_name.$" = "$$.Execution.Name"
-            "error.$" = "$.error"
+            "execution_arn.$" = "$$.Execution.Name"
             "state_machine.$" = "$$.StateMachine.Name"
+            "error_message" = "Step Functions execution failed"
           }
         }
         End = true
