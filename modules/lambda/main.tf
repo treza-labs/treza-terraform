@@ -7,12 +7,9 @@ resource "aws_lambda_function" "enclave_trigger" {
   runtime         = "python3.9"
   timeout         = 60
   
-  source_code_hash = filebase64sha256(local.enclave_trigger_zip_path)
+  source_code_hash = "${filebase64sha256(local.enclave_trigger_zip_path)}-${null_resource.build_lambda_functions.id}"
   
-  lifecycle {
-    replace_triggered_by = [null_resource.build_lambda_functions]
-    ignore_changes      = [source_code_hash]
-  }
+  depends_on = [null_resource.build_lambda_functions]
   
   environment {
     variables = {
@@ -33,12 +30,9 @@ resource "aws_lambda_function" "validation" {
   runtime         = "python3.9"
   timeout         = 300
   
-  source_code_hash = filebase64sha256(local.validation_zip_path)
+  source_code_hash = "${filebase64sha256(local.validation_zip_path)}-${null_resource.build_lambda_functions.id}"
   
-  lifecycle {
-    replace_triggered_by = [null_resource.build_lambda_functions]
-    ignore_changes      = [source_code_hash]
-  }
+  depends_on = [null_resource.build_lambda_functions]
   
   environment {
     variables = {
@@ -58,12 +52,9 @@ resource "aws_lambda_function" "error_handler" {
   runtime         = "python3.9"
   timeout         = 60
   
-  source_code_hash = filebase64sha256(local.error_handler_zip_path)
+  source_code_hash = "${filebase64sha256(local.error_handler_zip_path)}-${null_resource.build_lambda_functions.id}"
   
-  lifecycle {
-    replace_triggered_by = [null_resource.build_lambda_functions]
-    ignore_changes      = [source_code_hash]
-  }
+  depends_on = [null_resource.build_lambda_functions]
   
   environment {
     variables = {
