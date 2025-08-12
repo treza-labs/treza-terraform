@@ -7,7 +7,12 @@ resource "aws_lambda_function" "enclave_trigger" {
   runtime         = "python3.9"
   timeout         = 60
   
-  source_code_hash = data.external.lambda_build.result.status != "" ? filebase64sha256(local.enclave_trigger_zip_path) : null
+  source_code_hash = filebase64sha256(local.enclave_trigger_zip_path)
+  
+  lifecycle {
+    replace_triggered_by = [null_resource.build_lambda_functions]
+    ignore_changes      = [source_code_hash]
+  }
   
   environment {
     variables = {
@@ -28,7 +33,12 @@ resource "aws_lambda_function" "validation" {
   runtime         = "python3.9"
   timeout         = 300
   
-  source_code_hash = data.external.lambda_build.result.status != "" ? filebase64sha256(local.validation_zip_path) : null
+  source_code_hash = filebase64sha256(local.validation_zip_path)
+  
+  lifecycle {
+    replace_triggered_by = [null_resource.build_lambda_functions]
+    ignore_changes      = [source_code_hash]
+  }
   
   environment {
     variables = {
@@ -48,7 +58,12 @@ resource "aws_lambda_function" "error_handler" {
   runtime         = "python3.9"
   timeout         = 60
   
-  source_code_hash = data.external.lambda_build.result.status != "" ? filebase64sha256(local.error_handler_zip_path) : null
+  source_code_hash = filebase64sha256(local.error_handler_zip_path)
+  
+  lifecycle {
+    replace_triggered_by = [null_resource.build_lambda_functions]
+    ignore_changes      = [source_code_hash]
+  }
   
   environment {
     variables = {
@@ -60,9 +75,17 @@ resource "aws_lambda_function" "error_handler" {
 }
 
 # Create ZIP files for Lambda functions
-# Data source to trigger Lambda build before planning
-data "external" "lambda_build" {
-  program = ["bash", "-c", "cd ${path.module} && ./build-functions.sh >/dev/null 2>&1 && echo '{\"status\":\"built\"}'"]
+# Build Lambda functions with dependencies before deploying
+resource "null_resource" "build_lambda_functions" {
+  triggers = {
+    # Force rebuild every time to ensure dependencies are included
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    command     = "./build-functions.sh"
+    working_dir = path.module
+  }
 }
 
 # Lambda functions use pre-built zip files from build script
