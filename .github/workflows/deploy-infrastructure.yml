@@ -168,6 +168,7 @@ jobs:
         terraform import module.lambda_functions.aws_lambda_function.validation treza-${{ github.event.inputs.environment || 'dev' }}-validation || echo "Validation Lambda: skipped"
         terraform import module.lambda_functions.aws_lambda_function.error_handler treza-${{ github.event.inputs.environment || 'dev' }}-error-handler || echo "Error handler Lambda: skipped"
         terraform import module.lambda_functions.aws_lambda_function.enclave_trigger treza-${{ github.event.inputs.environment || 'dev' }}-enclave-trigger || echo "Enclave trigger Lambda: skipped"
+        terraform import module.lambda_functions.aws_lambda_function.status_monitor treza-${{ github.event.inputs.environment || 'dev' }}-status-monitor || echo "Status monitor Lambda: skipped"
         
         # Import Lambda Event Source Mapping (DynamoDB Stream trigger)
         ESM_UUID=$(aws lambda list-event-source-mappings --function-name treza-${{ github.event.inputs.environment || 'dev' }}-enclave-trigger --query 'EventSourceMappings[0].UUID' --output text 2>/dev/null || echo "")
@@ -181,6 +182,10 @@ jobs:
         terraform import module.lambda_functions.aws_cloudwatch_log_group.validation /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-validation || echo "Validation Lambda log group: skipped"
         terraform import module.lambda_functions.aws_cloudwatch_log_group.error_handler /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-error-handler || echo "Error handler Lambda log group: skipped"
         terraform import module.lambda_functions.aws_cloudwatch_log_group.enclave_trigger /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-enclave-trigger || echo "Enclave trigger Lambda log group: skipped"
+        terraform import module.lambda_functions.aws_cloudwatch_log_group.status_monitor /aws/lambda/treza-${{ github.event.inputs.environment || 'dev' }}-status-monitor || echo "Status monitor Lambda log group: skipped"
+        
+        # Import EventBridge resources for status monitor
+        terraform import module.lambda_functions.aws_cloudwatch_event_rule.status_monitor_schedule treza-${{ github.event.inputs.environment || 'dev' }}-status-monitor-schedule || echo "Status monitor EventBridge rule: skipped"
         
         # Import Step Functions State Machines using ARNs
         DEPLOYMENT_SM_ARN=$(aws stepfunctions list-state-machines --query "stateMachines[?name=='treza-${{ github.event.inputs.environment || 'dev' }}-deployment'].stateMachineArn" --output text 2>/dev/null || echo "")
