@@ -18,7 +18,7 @@ variable "enclave_id" {
 variable "instance_type" {
   description = "EC2 instance type for the enclave"
   type        = string
-  default     = "c5.large"
+  default     = "m5.xlarge"
   
   validation {
     condition = contains([
