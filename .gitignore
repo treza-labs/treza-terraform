@@ -16,11 +16,10 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Lambda function builds (but include pre-built zips for deployment)
+# Lambda function builds
 lambda/*/builds/
-# modules/lambda/builds/  # Allow pre-built Lambda zip files
+modules/lambda/builds/
 *.zip
-!modules/lambda/builds/*.zip  # Exception: include pre-built Lambda zip files
 
 # Docker
 .dockerignore

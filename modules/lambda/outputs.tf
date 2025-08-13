@@ -27,3 +27,13 @@ output "error_handler_function_name" {
   description = "Name of the error handler Lambda function"
   value       = aws_lambda_function.error_handler.function_name
 }
+
+output "status_monitor_function_arn" {
+  description = "ARN of the status monitor Lambda function"
+  value       = aws_lambda_function.status_monitor.arn
+}
+
+output "status_monitor_function_name" {
+  description = "Name of the status monitor Lambda function"
+  value       = aws_lambda_function.status_monitor.function_name
+}
