@@ -224,7 +224,7 @@ resource "aws_sfn_state_machine" "deployment" {
               "S.$" = "$$.State.EnteredTime"
             }
             ":error" = {
-              "S.$" = "$.error.Cause"
+              "S.$" = "$.validation_result.Payload.message"
             }
           }
         }
@@ -422,7 +422,7 @@ resource "aws_sfn_state_machine" "cleanup" {
               "S.$" = "$$.State.EnteredTime"
             }
             ":error" = {
-              "S.$" = "$.error.Cause"
+              "S.$" = "$.validation_result.Payload.message"
             }
           }
         }

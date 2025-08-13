@@ -66,7 +66,7 @@ def validate_deploy_request(enclave_id, config):
             "properties": {
                 "instance_type": {
                     "type": "string",
-                    "enum": ["m5.large", "m5.xlarge", "m5.2xlarge", "m5.4xlarge", "c5.large", "c5.xlarge"]
+                    "enum": ["m5n.large", "m5n.xlarge", "m5n.2xlarge", "m5n.4xlarge", "c5n.large", "c5n.xlarge", "c5n.2xlarge", "c5n.4xlarge", "r5n.large", "r5n.xlarge", "r5n.2xlarge", "r5n.4xlarge"]
                 },
                 "cpu_count": {
                     "type": "integer",
