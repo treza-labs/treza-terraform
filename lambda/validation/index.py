@@ -54,7 +54,7 @@ def validate_deploy_request(enclave_id, config):
     """Validate deployment request"""
     try:
         # Apply default values for required fields if not provided
-        config.setdefault("instance_type", "m5.large")
+        config.setdefault("instance_type", "c5.large")
         config.setdefault("cpu_count", 2)
         config.setdefault("memory_mib", 1024)
         config.setdefault("eif_path", "/opt/aws/nitro_enclaves/share/hello.eif")

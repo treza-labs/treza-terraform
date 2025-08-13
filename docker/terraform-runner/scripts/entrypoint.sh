@@ -45,7 +45,7 @@ echo "$CONFIGURATION" | jq . > config.json
 # Extract configuration values and create terraform.tfvars
 cat > terraform.tfvars <<EOF
 enclave_id = "$ENCLAVE_ID"
-instance_type = "$(echo "$CONFIGURATION" | jq -r '.instance_type // "m5.large"')"
+instance_type = "$(echo "$CONFIGURATION" | jq -r '.instance_type // "c5.large"')"
 cpu_count = $(echo "$CONFIGURATION" | jq -r '.cpu_count // 2')
 memory_mib = $(echo "$CONFIGURATION" | jq -r '.memory_mib // 512')
 eif_path = "$(echo "$CONFIGURATION" | jq -r '.eif_path // "https://github.com/aws/aws-nitro-enclaves-samples/releases/download/v1.0.0/hello.eif"')"
