@@ -153,7 +153,7 @@ resource "aws_sfn_state_machine" "deployment" {
         Type = "Choice"
         Choices = [
           {
-            Variable = "$.terraform_result.Tasks[0].LastStatus"
+            Variable = "$.terraform_result.LastStatus"
             StringEquals = "STOPPED"
             Next = "CheckExitCode"
           }
@@ -165,7 +165,7 @@ resource "aws_sfn_state_machine" "deployment" {
         Type = "Choice"
         Choices = [
           {
-            Variable = "$.terraform_result.Tasks[0].Containers[0].ExitCode"
+            Variable = "$.terraform_result.Containers[0].ExitCode"
             NumericEquals = 0
             Next = "UpdateStatusToDeployed"
           }
