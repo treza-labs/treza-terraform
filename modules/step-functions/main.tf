@@ -294,6 +294,7 @@ resource "aws_sfn_state_machine" "cleanup" {
             }
           }
         }
+        ResultPath = "$.update_result"
         Next = "RunTerraformDestroy"
         Catch = [
           {
