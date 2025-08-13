@@ -186,6 +186,8 @@ jobs:
         
         # Import EventBridge resources for status monitor
         terraform import module.lambda_functions.aws_cloudwatch_event_rule.status_monitor_schedule treza-${{ github.event.inputs.environment || 'dev' }}-status-monitor-schedule || echo "Status monitor EventBridge rule: skipped"
+        terraform import module.lambda_functions.aws_cloudwatch_event_target.status_monitor_target treza-${{ github.event.inputs.environment || 'dev' }}-status-monitor-schedule/StatusMonitorTarget || echo "Status monitor EventBridge target: skipped"
+        terraform import module.lambda_functions.aws_lambda_permission.allow_eventbridge_status_monitor treza-${{ github.event.inputs.environment || 'dev' }}-status-monitor/AllowExecutionFromEventBridge || echo "Status monitor Lambda permission: skipped"
         
         # Import Step Functions State Machines using ARNs
         DEPLOYMENT_SM_ARN=$(aws stepfunctions list-state-machines --query "stateMachines[?name=='treza-${{ github.event.inputs.environment || 'dev' }}-deployment'].stateMachineArn" --output text 2>/dev/null || echo "")
