@@ -83,11 +83,20 @@ def process_enclave_status(enclave, table):
         
         logger.info(f"Instance {instance_id} state: {instance_state}")
         
-        # Determine the new status based on current status and instance state
+        # Determine the new status and take actions based on current status and instance state
         new_status = None
+        action_taken = False
         
         if current_status == 'PAUSING':
-            if instance_state == 'stopped':
+            if instance_state == 'running':
+                # Need to stop the instance
+                try:
+                    logger.info(f"Stopping instance {instance_id} for enclave {enclave_id}")
+                    ec2.stop_instances(InstanceIds=[instance_id])
+                    action_taken = True
+                except Exception as e:
+                    logger.error(f"Failed to stop instance {instance_id}: {str(e)}")
+            elif instance_state == 'stopped':
                 new_status = 'PAUSED'
             elif instance_state in ['stopping']:
                 # Still transitioning, keep current status
@@ -96,7 +105,15 @@ def process_enclave_status(enclave, table):
                 logger.warning(f"Unexpected state {instance_state} for pausing enclave {enclave_id}")
         
         elif current_status == 'RESUMING':
-            if instance_state == 'running':
+            if instance_state == 'stopped':
+                # Need to start the instance
+                try:
+                    logger.info(f"Starting instance {instance_id} for enclave {enclave_id}")
+                    ec2.start_instances(InstanceIds=[instance_id])
+                    action_taken = True
+                except Exception as e:
+                    logger.error(f"Failed to start instance {instance_id}: {str(e)}")
+            elif instance_state == 'running':
                 new_status = 'DEPLOYED'
             elif instance_state in ['pending']:
                 # Still transitioning, keep current status
@@ -122,6 +139,8 @@ def process_enclave_status(enclave, table):
             )
             
             logger.info(f"Successfully updated enclave {enclave_id} to {new_status}")
+        elif action_taken:
+            logger.info(f"Action taken for enclave {enclave_id}, will check again next cycle")
             
     except Exception as e:
         logger.error(f"Error processing enclave {enclave.get('id', 'unknown')}: {str(e)}")
