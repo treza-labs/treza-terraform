@@ -45,7 +45,9 @@ resource "aws_iam_role_policy" "lambda_execution" {
           "dynamodb:GetShardIterator",
           "dynamodb:ListStreams",
           "dynamodb:UpdateItem",
-          "dynamodb:PutItem"
+          "dynamodb:PutItem",
+          "dynamodb:Scan",
+          "dynamodb:Query"
         ]
         Resource = [
           var.dynamodb_table_arn,
@@ -56,6 +58,15 @@ resource "aws_iam_role_policy" "lambda_execution" {
         Effect = "Allow"
         Action = [
           "states:StartExecution"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:DescribeInstances",
+          "ec2:StartInstances",
+          "ec2:StopInstances"
         ]
         Resource = "*"
       }
