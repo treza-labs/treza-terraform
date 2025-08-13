@@ -251,7 +251,6 @@ resource "aws_iam_role_policy" "ecs_task" {
         Effect = "Allow"
         Action = [
           "ec2:*",
-          "iam:*",
           "kms:*",
           "logs:*"
         ]
@@ -261,6 +260,13 @@ resource "aws_iam_role_policy" "ecs_task" {
             "aws:RequestedRegion" = data.aws_region.current.name
           }
         }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:*"
+        ]
+        Resource = "*"
       },
       {
         Effect = "Allow"
