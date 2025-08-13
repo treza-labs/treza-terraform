@@ -48,11 +48,12 @@ module "dynamodb_streams" {
 module "lambda_functions" {
   source = "../modules/lambda"
   
-  name_prefix                = local.name_prefix
-  step_function_arn         = module.step_functions.deployment_state_machine_arn
-  dynamodb_table_name       = var.existing_dynamodb_table_name
-  lambda_execution_role_arn = module.iam.lambda_execution_role_arn
-  tags                      = local.common_tags
+  name_prefix                   = local.name_prefix
+  deployment_step_function_arn  = module.step_functions.deployment_state_machine_arn
+  cleanup_step_function_arn     = module.step_functions.cleanup_state_machine_arn
+  dynamodb_table_name          = var.existing_dynamodb_table_name
+  lambda_execution_role_arn    = module.iam.lambda_execution_role_arn
+  tags                         = local.common_tags
 }
 
 module "step_functions" {

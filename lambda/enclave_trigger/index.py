@@ -20,12 +20,13 @@ def handler(event, context):
     try:
         logger.info(f"Received event: {json.dumps(event)}")
         
-        step_function_arn = os.environ['STEP_FUNCTION_ARN']
+        deployment_step_function_arn = os.environ['DEPLOYMENT_STEP_FUNCTION_ARN']
+        cleanup_step_function_arn = os.environ['CLEANUP_STEP_FUNCTION_ARN']
         table_name = os.environ['DYNAMODB_TABLE_NAME']
         
         for record in event['Records']:
             if record['eventName'] in ['INSERT', 'MODIFY']:
-                process_record(record, step_function_arn)
+                process_record(record, deployment_step_function_arn, cleanup_step_function_arn)
         
         return {
             'statusCode': 200,
@@ -36,7 +37,7 @@ def handler(event, context):
         logger.error(f"Error processing event: {str(e)}")
         raise e
 
-def process_record(record, step_function_arn):
+def process_record(record, deployment_step_function_arn, cleanup_step_function_arn):
     """Process a single DynamoDB stream record"""
     try:
         # Extract enclave data from the record
@@ -56,6 +57,9 @@ def process_record(record, step_function_arn):
             if status in ['PENDING_DEPLOY', 'PENDING_DESTROY']:
                 action = 'deploy' if status == 'PENDING_DEPLOY' else 'destroy'
                 
+                # Select the appropriate Step Functions state machine based on action
+                step_function_arn = deployment_step_function_arn if action == 'deploy' else cleanup_step_function_arn
+                
                 # Prepare Step Functions input
                 step_input = {
                     'enclave_id': enclave_id,
@@ -66,6 +70,8 @@ def process_record(record, step_function_arn):
                 
                 # Start Step Functions execution
                 execution_name = f"{enclave_id}-{action}-{int(datetime.utcnow().timestamp())}"
+                
+                logger.info(f"Starting {action} workflow using state machine: {step_function_arn}")
                 
                 response = stepfunctions.start_execution(
                     stateMachineArn=step_function_arn,

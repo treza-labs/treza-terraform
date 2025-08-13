@@ -3,8 +3,13 @@ variable "name_prefix" {
   type        = string
 }
 
-variable "step_function_arn" {
-  description = "ARN of the Step Functions state machine to trigger"
+variable "deployment_step_function_arn" {
+  description = "ARN of the deployment Step Functions state machine"
+  type        = string
+}
+
+variable "cleanup_step_function_arn" {
+  description = "ARN of the cleanup Step Functions state machine"
   type        = string
 }
 

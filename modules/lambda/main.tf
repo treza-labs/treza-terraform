@@ -13,7 +13,8 @@ resource "aws_lambda_function" "enclave_trigger" {
   
   environment {
     variables = {
-      STEP_FUNCTION_ARN = var.step_function_arn
+      DEPLOYMENT_STEP_FUNCTION_ARN = var.deployment_step_function_arn
+      CLEANUP_STEP_FUNCTION_ARN = var.cleanup_step_function_arn
       DYNAMODB_TABLE_NAME = var.dynamodb_table_name
     }
   }
