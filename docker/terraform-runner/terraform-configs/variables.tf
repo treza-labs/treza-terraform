@@ -18,12 +18,13 @@ variable "enclave_id" {
 variable "instance_type" {
   description = "EC2 instance type for the enclave"
   type        = string
-  default     = "m5.large"
+  default     = "m5n.large"
   
   validation {
     condition = contains([
-      "m5.large", "m5.xlarge", "m5.2xlarge", "m5.4xlarge",
-      "c5.large", "c5.xlarge", "c5.2xlarge", "c5.4xlarge"
+      "m5n.large", "m5n.xlarge", "m5n.2xlarge", "m5n.4xlarge",
+      "c5n.large", "c5n.xlarge", "c5n.2xlarge", "c5n.4xlarge",
+      "r5n.large", "r5n.xlarge", "r5n.2xlarge", "r5n.4xlarge"
     ], var.instance_type)
     error_message = "Instance type must support Nitro Enclaves."
   }
