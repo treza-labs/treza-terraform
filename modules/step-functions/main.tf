@@ -132,6 +132,10 @@ resource "aws_sfn_state_machine" "deployment" {
                   {
                     Name = "CONFIGURATION"
                     "Value.$" = "$.configuration"
+                  },
+                  {
+                    Name = "WALLET_ADDRESS"
+                    "Value.$" = "$.wallet_address"
                   }
                 ]
               }
@@ -331,6 +335,10 @@ resource "aws_sfn_state_machine" "cleanup" {
                   {
                     Name = "ACTION"
                     Value = "destroy"
+                  },
+                  {
+                    Name = "WALLET_ADDRESS"
+                    "Value.$" = "$.wallet_address"
                   }
                 ]
               }

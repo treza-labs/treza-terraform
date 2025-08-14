@@ -46,12 +46,17 @@ def process_record(record, deployment_step_function_arn, cleanup_step_function_a
             
             enclave_id = new_image.get('id', {}).get('S')
             status = new_image.get('status', {}).get('S')
+            wallet_address = new_image.get('walletAddress', {}).get('S', '')
             
             if not enclave_id:
                 logger.warning("No enclave ID found in record")
                 return
             
-            logger.info(f"Processing enclave {enclave_id} with status {status}")
+            if not wallet_address:
+                logger.warning(f"No wallet address found for enclave {enclave_id}")
+                # Continue anyway for backwards compatibility
+            
+            logger.info(f"Processing enclave {enclave_id} with status {status} for wallet {wallet_address}")
             
             # Only trigger for specific status changes
             if status in ['PENDING_DEPLOY', 'PENDING_DESTROY']:
@@ -65,6 +70,7 @@ def process_record(record, deployment_step_function_arn, cleanup_step_function_a
                     'enclave_id': enclave_id,
                     'action': action,
                     'configuration': new_image.get('configuration', {}).get('S', '{}'),
+                    'wallet_address': wallet_address,
                     'timestamp': datetime.utcnow().isoformat()
                 }
                 

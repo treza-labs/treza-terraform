@@ -5,12 +5,14 @@ set -e
 ACTION=${ACTION:-"plan"}
 ENCLAVE_ID=${ENCLAVE_ID:-""}
 CONFIGURATION=${CONFIGURATION:-"{}"}
+WALLET_ADDRESS=${WALLET_ADDRESS:-""}
 TF_STATE_BUCKET=${TF_STATE_BUCKET:-""}
 TF_STATE_DYNAMODB_TABLE=${TF_STATE_DYNAMODB_TABLE:-""}
 
 echo "=== Terraform Runner Started ==="
 echo "Action: $ACTION"
 echo "Enclave ID: $ENCLAVE_ID"
+echo "Wallet Address: $WALLET_ADDRESS"
 echo "State Bucket: $TF_STATE_BUCKET"
 echo "State DynamoDB Table: $TF_STATE_DYNAMODB_TABLE"
 
@@ -30,6 +32,12 @@ if [ -z "$TF_STATE_DYNAMODB_TABLE" ]; then
     exit 1
 fi
 
+if [ -z "$WALLET_ADDRESS" ]; then
+    echo "WARNING: WALLET_ADDRESS environment variable is not set"
+    # Set a default for backwards compatibility
+    WALLET_ADDRESS="unknown"
+fi
+
 # Set up workspace
 WORKSPACE_DIR="/workspace/${ENCLAVE_ID}"
 mkdir -p "$WORKSPACE_DIR"
@@ -45,6 +53,7 @@ echo "$CONFIGURATION" | jq . > config.json
 # Extract configuration values and create terraform.tfvars
 cat > terraform.tfvars <<EOF
 enclave_id = "$ENCLAVE_ID"
+wallet_address = "$WALLET_ADDRESS"
 instance_type = "$(echo "$CONFIGURATION" | jq -r '.instance_type // "m5.xlarge"')"
 cpu_count = $(echo "$CONFIGURATION" | jq -r '.cpu_count // 2')
 memory_mib = $(echo "$CONFIGURATION" | jq -r '.memory_mib // 512')
