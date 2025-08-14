@@ -113,7 +113,7 @@ resource "aws_sfn_state_machine" "deployment" {
             AwsvpcConfiguration = {
               Subnets = var.subnet_ids
               SecurityGroups = [var.security_group_id]
-              AssignPublicIp = "DISABLED"
+              AssignPublicIp = "ENABLED"
             }
           }
           Overrides = {
@@ -336,7 +336,7 @@ resource "aws_sfn_state_machine" "cleanup" {
             AwsvpcConfiguration = {
               Subnets = var.subnet_ids
               SecurityGroups = [var.security_group_id]
-              AssignPublicIp = "DISABLED"
+              AssignPublicIp = "ENABLED"
             }
           }
           Overrides = {
