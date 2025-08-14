@@ -118,18 +118,27 @@ echo "Terraform version:"
 terraform version
 echo "✓ Terraform version check completed"
 
-echo "Files in current directory:"
-ls -la || echo "Directory listing failed"
-echo "✓ File listing completed"
+# Simple test - just try to create terraform.tfvars and see if that works
+echo "Creating terraform.tfvars..."
+cat > terraform.tfvars <<EOF
+enclave_id = "$ENCLAVE_ID"
+wallet_address = "$WALLET_ADDRESS"
+vpc_id = "$VPC_ID"
+subnet_id = "$SUBNET_ID"
+aws_region = "${AWS_DEFAULT_REGION:-us-west-2}"
+environment = "${ENVIRONMENT:-dev}"
+instance_type = "m5.xlarge"
+cpu_count = 2
+memory_mib = 512
+eif_path = "https://github.com/aws/aws-nitro-enclaves-samples/releases/download/v1.0.0/hello.eif"
+docker_image = "nginx:alpine"
+debug_mode = false
+key_pair_name = ""
+EOF
 
-echo "Key environment variables:"
-echo "ACTION=$ACTION"
-echo "ENCLAVE_ID=$ENCLAVE_ID"
-echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION"
-echo "WALLET_ADDRESS=$WALLET_ADDRESS"
-echo "VPC_ID=$VPC_ID"
-echo "SUBNET_ID=$SUBNET_ID"
-echo "✓ Environment check completed"
+echo "✓ terraform.tfvars created"
+echo "Testing file exists:"
+ls terraform.tfvars && echo "File exists!" || echo "File missing!"
 
 # Initialize Terraform
 echo "=== Starting Terraform Initialization ==="
