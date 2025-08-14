@@ -115,10 +115,20 @@ echo "Files in current directory:"
 ls -la
 echo "Terraform version:"
 terraform version
-echo "AWS CLI version:"
-aws --version
+echo "✓ Terraform version check completed"
+
+echo "Checking AWS CLI..."
+if command -v aws >/dev/null 2>&1; then
+    echo "AWS CLI found, checking version..."
+    aws --version || echo "AWS CLI version check failed"
+else
+    echo "WARNING: AWS CLI not found"
+fi
+echo "✓ AWS CLI check completed"
+
 echo "Environment variables:"
-env | grep -E "(AWS|TF_)" | sort
+env | grep -E "(AWS|TF_)" | sort || echo "Environment check failed"
+echo "✓ Environment check completed"
 echo "Starting terraform init..."
 INIT_OUTPUT=$(terraform init -no-color 2>&1)
 INIT_EXIT_CODE=$?
