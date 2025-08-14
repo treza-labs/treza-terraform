@@ -37,3 +37,24 @@ output "enclave_configuration" {
     debug_mode  = var.debug_mode
   }
 }
+
+# Application Logging Outputs
+output "application_log_group_name" {
+  description = "Name of the application log group"
+  value       = module.application_logging.application_log_group_name
+}
+
+output "stdout_log_group_name" {
+  description = "Name of the stdout log group"
+  value       = module.application_logging.stdout_log_group_name
+}
+
+output "stderr_log_group_name" {
+  description = "Name of the stderr log group"
+  value       = module.application_logging.stderr_log_group_name
+}
+
+output "cloudwatch_agent_instance_profile_name" {
+  description = "Name of the CloudWatch agent instance profile"
+  value       = module.application_logging.cloudwatch_agent_instance_profile_name
+}

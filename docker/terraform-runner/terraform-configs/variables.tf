@@ -103,3 +103,8 @@ variable "log_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "wallet_address" {
+  description = "Wallet address of the enclave owner"
+  type        = string
+}

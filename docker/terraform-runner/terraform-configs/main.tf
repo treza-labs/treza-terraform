@@ -46,6 +46,7 @@ resource "aws_instance" "nitro_enclave" {
   key_name              = var.key_pair_name
   vpc_security_group_ids = [aws_security_group.enclave.id]
   subnet_id             = var.subnet_id
+  iam_instance_profile   = module.application_logging.cloudwatch_agent_instance_profile_name
   
   # Enable Nitro Enclaves
   enclave_options {
@@ -164,12 +165,23 @@ resource "aws_iam_role_policy" "enclave_instance" {
   })
 }
 
-# CloudWatch Log Group for Enclave
+# CloudWatch Log Group for Enclave Infrastructure
 resource "aws_cloudwatch_log_group" "enclave" {
   name              = "/aws/ec2/treza/${var.enclave_id}"
   retention_in_days = var.log_retention_days
   
   tags = local.common_tags
+}
+
+# Application Logging Module
+module "application_logging" {
+  source = "../../../modules/application-logging"
+  
+  enclave_id         = var.enclave_id
+  wallet_address     = var.wallet_address
+  name_prefix        = local.name_prefix
+  log_retention_days = var.log_retention_days
+  tags              = local.common_tags
 }
 
 # Data source for Amazon Linux AMI
