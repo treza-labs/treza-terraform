@@ -118,7 +118,90 @@ echo "Terraform version:"
 terraform version
 echo "✓ Terraform version check completed"
 
-echo "SUCCESS: Container is working properly!"
-echo "Action: $ACTION"
-echo "All checks passed - exiting successfully"
-exit 0
+echo "Files in current directory:"
+ls -la || echo "Directory listing failed"
+echo "✓ File listing completed"
+
+echo "Environment variables (AWS/TF subset):"
+env | grep -E "^(AWS_|TF_|ACTION|ENCLAVE_ID)" | sort || echo "Environment check failed"
+echo "✓ Environment check completed"
+
+# Initialize Terraform
+echo "=== Starting Terraform Initialization ==="
+echo "Running: terraform init -no-color"
+INIT_OUTPUT=$(terraform init -no-color 2>&1)
+INIT_EXIT_CODE=$?
+echo "--- Terraform Init Output ---"
+echo "$INIT_OUTPUT"
+echo "--- End Output ---"
+if [ $INIT_EXIT_CODE -ne 0 ]; then
+    echo "ERROR: Terraform initialization failed with exit code: $INIT_EXIT_CODE"
+    exit 1
+fi
+echo "✅ Terraform initialization completed successfully"
+
+# Validate configuration
+echo "=== Starting Terraform Validation ==="
+echo "Running: terraform validate -no-color"
+VALIDATE_OUTPUT=$(terraform validate -no-color 2>&1)
+VALIDATE_EXIT_CODE=$?
+echo "--- Terraform Validate Output ---"
+echo "$VALIDATE_OUTPUT"
+echo "--- End Output ---"
+if [ $VALIDATE_EXIT_CODE -ne 0 ]; then
+    echo "ERROR: Terraform validation failed with exit code: $VALIDATE_EXIT_CODE"
+    exit 1
+fi
+echo "✅ Terraform validation passed successfully"
+
+# Execute the requested action
+case "$ACTION" in
+    "plan")
+        echo "=== Running Terraform Plan ==="
+        terraform plan -no-color -out=tfplan
+        ;;
+    "deploy")
+        echo "=== Running Terraform Plan ==="
+        PLAN_OUTPUT=$(terraform plan -no-color -out=tfplan 2>&1)
+        PLAN_EXIT_CODE=$?
+        echo "--- Terraform Plan Output ---"
+        echo "$PLAN_OUTPUT"
+        echo "--- End Output ---"
+        if [ $PLAN_EXIT_CODE -ne 0 ]; then
+            echo "ERROR: Terraform plan failed with exit code: $PLAN_EXIT_CODE"
+            exit 1
+        fi
+        echo "✅ Terraform plan completed successfully"
+        
+        echo "=== Running Terraform Apply ==="
+        APPLY_OUTPUT=$(terraform apply -no-color -auto-approve tfplan 2>&1)
+        APPLY_EXIT_CODE=$?
+        echo "--- Terraform Apply Output ---"
+        echo "$APPLY_OUTPUT"
+        echo "--- End Output ---"
+        if [ $APPLY_EXIT_CODE -ne 0 ]; then
+            echo "ERROR: Terraform apply failed with exit code: $APPLY_EXIT_CODE"
+            exit 1
+        fi
+        echo "✅ Terraform apply completed successfully"
+        ;;
+    "destroy")
+        echo "=== Running Terraform Destroy ==="
+        DESTROY_OUTPUT=$(terraform destroy -no-color -auto-approve 2>&1)
+        DESTROY_EXIT_CODE=$?
+        echo "--- Terraform Destroy Output ---"
+        echo "$DESTROY_OUTPUT"
+        echo "--- End Output ---"
+        if [ $DESTROY_EXIT_CODE -ne 0 ]; then
+            echo "ERROR: Terraform destroy failed with exit code: $DESTROY_EXIT_CODE"
+            exit 1
+        fi
+        echo "✅ Terraform destroy completed successfully"
+        ;;
+    *)
+        echo "ERROR: Unknown action '$ACTION'. Supported actions: plan, deploy, destroy"
+        exit 1
+        ;;
+esac
+
+echo "=== 🎉 Terraform Runner Completed Successfully ==="
