@@ -136,6 +136,14 @@ resource "aws_sfn_state_machine" "deployment" {
                   {
                     Name = "WALLET_ADDRESS"
                     "Value.$" = "$.wallet_address"
+                  },
+                  {
+                    Name = "VPC_ID"
+                    Value = var.vpc_id
+                  },
+                  {
+                    Name = "SUBNET_ID"
+                    Value = var.subnet_ids[0]
                   }
                 ]
               }
@@ -339,6 +347,14 @@ resource "aws_sfn_state_machine" "cleanup" {
                   {
                     Name = "WALLET_ADDRESS"
                     "Value.$" = "$.wallet_address"
+                  },
+                  {
+                    Name = "VPC_ID"
+                    Value = var.vpc_id
+                  },
+                  {
+                    Name = "SUBNET_ID"
+                    Value = var.subnet_ids[0]
                   }
                 ]
               }

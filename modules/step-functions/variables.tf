@@ -18,6 +18,11 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
+variable "vpc_id" {
+  description = "VPC ID for enclave deployments"
+  type        = string
+}
+
 variable "security_group_id" {
   description = "Security group ID for ECS tasks"
   type        = string

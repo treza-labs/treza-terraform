@@ -57,7 +57,7 @@ def validate_deploy_request(enclave_id, config):
         config.setdefault("instance_type", "m5.xlarge")
         config.setdefault("cpu_count", 2)
         config.setdefault("memory_mib", 1024)
-        config.setdefault("eif_path", "/opt/aws/nitro_enclaves/share/hello.eif")
+        config.setdefault("eif_path", "https://github.com/aws/aws-nitro-enclaves-samples/releases/download/v1.0.0/hello.eif")
         config.setdefault("debug_mode", False)
         
         # Define schema for enclave configuration

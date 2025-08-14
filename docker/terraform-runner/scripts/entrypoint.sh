@@ -6,6 +6,8 @@ ACTION=${ACTION:-"plan"}
 ENCLAVE_ID=${ENCLAVE_ID:-""}
 CONFIGURATION=${CONFIGURATION:-"{}"}
 WALLET_ADDRESS=${WALLET_ADDRESS:-""}
+VPC_ID=${VPC_ID:-""}
+SUBNET_ID=${SUBNET_ID:-""}
 TF_STATE_BUCKET=${TF_STATE_BUCKET:-""}
 TF_STATE_DYNAMODB_TABLE=${TF_STATE_DYNAMODB_TABLE:-""}
 
@@ -13,6 +15,8 @@ echo "=== Terraform Runner Started ==="
 echo "Action: $ACTION"
 echo "Enclave ID: $ENCLAVE_ID"
 echo "Wallet Address: $WALLET_ADDRESS"
+echo "VPC ID: $VPC_ID"
+echo "Subnet ID: $SUBNET_ID"
 echo "State Bucket: $TF_STATE_BUCKET"
 echo "State DynamoDB Table: $TF_STATE_DYNAMODB_TABLE"
 
@@ -38,6 +42,16 @@ if [ -z "$WALLET_ADDRESS" ]; then
     WALLET_ADDRESS="unknown"
 fi
 
+if [ -z "$VPC_ID" ]; then
+    echo "ERROR: VPC_ID environment variable is required"
+    exit 1
+fi
+
+if [ -z "$SUBNET_ID" ]; then
+    echo "ERROR: SUBNET_ID environment variable is required"
+    exit 1
+fi
+
 # Set up workspace
 WORKSPACE_DIR="/workspace/${ENCLAVE_ID}"
 mkdir -p "$WORKSPACE_DIR"
@@ -54,6 +68,8 @@ echo "$CONFIGURATION" | jq . > config.json
 cat > terraform.tfvars <<EOF
 enclave_id = "$ENCLAVE_ID"
 wallet_address = "$WALLET_ADDRESS"
+vpc_id = "$VPC_ID"
+subnet_id = "$SUBNET_ID"
 instance_type = "$(echo "$CONFIGURATION" | jq -r '.instance_type // "m5.xlarge"')"
 cpu_count = $(echo "$CONFIGURATION" | jq -r '.cpu_count // 2')
 memory_mib = $(echo "$CONFIGURATION" | jq -r '.memory_mib // 512')

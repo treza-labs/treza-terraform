@@ -63,6 +63,7 @@ module "step_functions" {
   ecs_cluster_arn           = module.ecs.cluster_arn
   ecs_task_definition_arn   = module.ecs.terraform_runner_task_definition_arn
   subnet_ids                = module.networking.private_subnet_ids
+  vpc_id                    = module.networking.vpc_id
   security_group_id         = module.networking.terraform_runner_security_group_id
   step_functions_role_arn   = module.iam.step_functions_execution_role_arn
   dynamodb_table_name       = var.existing_dynamodb_table_name
