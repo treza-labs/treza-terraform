@@ -81,6 +81,7 @@ instance_type = "$(echo "$CONFIGURATION" | jq -r '.instance_type // "m5.xlarge"'
 cpu_count = $(echo "$CONFIGURATION" | jq -r '.cpu_count // 2')
 memory_mib = $(echo "$CONFIGURATION" | jq -r '.memory_mib // 512')
 eif_path = "$(echo "$CONFIGURATION" | jq -r '.eif_path // "https://github.com/aws/aws-nitro-enclaves-samples/releases/download/v1.0.0/hello.eif"')"
+docker_image = "$(echo "$CONFIGURATION" | jq -r '.dockerImage // "nginx:alpine"')"
 debug_mode = $(echo "$CONFIGURATION" | jq -r '.debug_mode // false')
 key_pair_name = ""
 EOF

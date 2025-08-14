@@ -31,11 +31,12 @@ resource "aws_instance" "nitro_enclave" {
   }
   
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    enclave_id  = var.enclave_id
-    cpu_count   = var.cpu_count
-    memory_mib  = var.memory_mib
-    eif_path    = var.eif_path
-    debug_mode  = var.debug_mode
+    enclave_id   = var.enclave_id
+    cpu_count    = var.cpu_count
+    memory_mib   = var.memory_mib
+    eif_path     = var.eif_path
+    docker_image = var.docker_image
+    debug_mode   = var.debug_mode
   }))
   
   tags = merge(local.common_tags, {

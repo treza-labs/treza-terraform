@@ -6,6 +6,7 @@ ENCLAVE_ID="${enclave_id}"
 CPU_COUNT="${cpu_count}"
 MEMORY_MIB="${memory_mib}"
 EIF_PATH="${eif_path}"
+DOCKER_IMAGE="${docker_image}"
 DEBUG_MODE="${debug_mode}"
 
 # Log everything
@@ -16,6 +17,7 @@ echo "Enclave ID: $ENCLAVE_ID"
 echo "CPU Count: $CPU_COUNT"
 echo "Memory: $MEMORY_MIB MiB"
 echo "EIF Path: $EIF_PATH"
+echo "Docker Image: $DOCKER_IMAGE"
 echo "Debug Mode: $DEBUG_MODE"
 
 # Update system
@@ -126,7 +128,7 @@ cat > /opt/enclave-logging-setup.sh <<'LOGGING_SCRIPT'
 set -e
 
 ENCLAVE_ID="$1"
-DOCKER_IMAGE="${2:-hello-world}"
+DOCKER_IMAGE="${2:-nginx:alpine}"
 CONTAINER_NAME="${3:-enclave-app}"
 
 echo "🔧 Setting up application logging for enclave: $ENCLAVE_ID"
@@ -271,6 +273,10 @@ systemctl enable amazon-cloudwatch-agent
 systemctl start amazon-cloudwatch-agent
 
 echo "📊 Application logging setup complete. Run '/opt/enclave-logging-setup.sh ENCLAVE_ID DOCKER_IMAGE' to start container with logging."
+
+# Start the enclave application with logging
+echo "🚀 Starting enclave application with logging..."
+/opt/enclave-logging-setup.sh "$ENCLAVE_ID" "$DOCKER_IMAGE"
 
 echo "=== Nitro Enclave Setup Complete ==="
 

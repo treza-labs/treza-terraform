@@ -56,6 +56,12 @@ variable "eif_path" {
   type        = string
 }
 
+variable "docker_image" {
+  description = "Docker image to run in the enclave"
+  type        = string
+  default     = "nginx:alpine"
+}
+
 variable "debug_mode" {
   description = "Enable debug mode for the enclave"
   type        = bool

@@ -6,7 +6,7 @@ set -e
 
 # Variables
 ENCLAVE_ID="${1:-unknown}"
-DOCKER_IMAGE="${2:-hello-world}"
+DOCKER_IMAGE="${2:-nginx:alpine}"
 CONTAINER_NAME="${3:-enclave-app}"
 
 echo "🔧 Setting up application logging for enclave: $ENCLAVE_ID"
