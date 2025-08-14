@@ -11,14 +11,16 @@ SUBNET_ID=${SUBNET_ID:-""}
 TF_STATE_BUCKET=${TF_STATE_BUCKET:-""}
 TF_STATE_DYNAMODB_TABLE=${TF_STATE_DYNAMODB_TABLE:-""}
 
-echo "=== Terraform Runner Started ==="
+echo "🚀🚀🚀 NEW TERRAFORM RUNNER VERSION 2.0 STARTED 🚀🚀🚀"
+echo "🔥 THIS IS THE UPDATED SCRIPT - IF YOU SEE THIS, THE UPDATE WORKED! 🔥"
 echo "Action: $ACTION"
-echo "Enclave ID: $ENCLAVE_ID"
+echo "Enclave ID: $ENCLAVE_ID" 
 echo "Wallet Address: $WALLET_ADDRESS"
 echo "VPC ID: $VPC_ID"
 echo "Subnet ID: $SUBNET_ID"
 echo "State Bucket: $TF_STATE_BUCKET"
 echo "State DynamoDB Table: $TF_STATE_DYNAMODB_TABLE"
+echo "🎯 Updated script is now active! 🎯"
 
 # Validate required environment variables
 if [ -z "$ENCLAVE_ID" ]; then
