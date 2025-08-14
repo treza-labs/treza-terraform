@@ -122,8 +122,13 @@ echo "Files in current directory:"
 ls -la || echo "Directory listing failed"
 echo "✓ File listing completed"
 
-echo "Environment variables (AWS/TF subset):"
-env | grep -E "^(AWS_|TF_|ACTION|ENCLAVE_ID)" | sort || echo "Environment check failed"
+echo "Key environment variables:"
+echo "ACTION=$ACTION"
+echo "ENCLAVE_ID=$ENCLAVE_ID"
+echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION"
+echo "WALLET_ADDRESS=$WALLET_ADDRESS"
+echo "VPC_ID=$VPC_ID"
+echo "SUBNET_ID=$SUBNET_ID"
 echo "✓ Environment check completed"
 
 # Initialize Terraform
