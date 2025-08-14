@@ -62,7 +62,12 @@ cp -r /terraform-configs/* .
 
 # Parse configuration and create terraform.tfvars
 echo "Parsing enclave configuration..."
-echo "$CONFIGURATION" | jq . > config.json
+echo "Raw configuration: $CONFIGURATION"
+if ! echo "$CONFIGURATION" | jq . > config.json; then
+    echo "ERROR: Invalid JSON configuration"
+    exit 1
+fi
+echo "✓ Configuration parsed successfully"
 
 # Extract configuration values and create terraform.tfvars
 cat > terraform.tfvars <<EOF
@@ -80,6 +85,8 @@ debug_mode = $(echo "$CONFIGURATION" | jq -r '.debug_mode // false')
 key_pair_name = ""
 EOF
 
+echo "✓ Created terraform.tfvars successfully"
+
 # Configure Terraform backend
 cat > backend.tf <<EOF
 terraform {
@@ -92,6 +99,8 @@ terraform {
 }
 EOF
 
+echo "✓ Created backend.tf successfully"
+
 echo "=== Terraform Configuration ==="
 echo "Working directory: $WORKSPACE_DIR"
 cat terraform.tfvars
@@ -101,7 +110,11 @@ echo ""
 
 # Initialize Terraform
 echo "=== Initializing Terraform ==="
-terraform init -no-color
+if ! terraform init -no-color; then
+    echo "ERROR: Terraform initialization failed"
+    exit 1
+fi
+echo "✓ Terraform initialization completed"
 
 # Validate configuration
 echo "=== Validating Terraform Configuration ==="
