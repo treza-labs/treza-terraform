@@ -110,16 +110,22 @@ echo ""
 
 # Initialize Terraform
 echo "=== Initializing Terraform ==="
-if ! terraform init -no-color; then
-    echo "ERROR: Terraform initialization failed"
+INIT_OUTPUT=$(terraform init -no-color 2>&1)
+INIT_EXIT_CODE=$?
+echo "$INIT_OUTPUT"
+if [ $INIT_EXIT_CODE -ne 0 ]; then
+    echo "ERROR: Terraform initialization failed with exit code: $INIT_EXIT_CODE"
     exit 1
 fi
 echo "✓ Terraform initialization completed"
 
 # Validate configuration
 echo "=== Validating Terraform Configuration ==="
-if ! terraform validate -no-color; then
-    echo "ERROR: Terraform validation failed"
+VALIDATE_OUTPUT=$(terraform validate -no-color 2>&1)
+VALIDATE_EXIT_CODE=$?
+echo "$VALIDATE_OUTPUT"
+if [ $VALIDATE_EXIT_CODE -ne 0 ]; then
+    echo "ERROR: Terraform validation failed with exit code: $VALIDATE_EXIT_CODE"
     exit 1
 fi
 echo "✓ Terraform validation passed"
