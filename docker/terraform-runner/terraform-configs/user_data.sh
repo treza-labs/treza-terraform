@@ -27,7 +27,8 @@ yum install -y \
     aws-nitro-enclaves-cli-devel \
     docker \
     aws-cli \
-    jq
+    jq \
+    wget
 
 # Configure Nitro Enclaves
 echo "=== Configuring Nitro Enclaves ==="
@@ -112,7 +113,134 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# Configure CloudWatch agent for enclave logs
+# Install CloudWatch agent for application logging
+echo "=== Installing CloudWatch Agent ==="
+wget -q https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+rpm -U ./amazon-cloudwatch-agent.rpm
+rm -f ./amazon-cloudwatch-agent.rpm
+
+# Copy application logging setup script
+cat > /opt/enclave-logging-setup.sh <<'LOGGING_SCRIPT'
+#!/bin/bash
+# Enclave Logging Setup Script
+set -e
+
+ENCLAVE_ID="$1"
+DOCKER_IMAGE="${2:-hello-world}"
+CONTAINER_NAME="${3:-enclave-app}"
+
+echo "🔧 Setting up application logging for enclave: $ENCLAVE_ID"
+
+# Create log directories
+mkdir -p /var/log/enclave
+chmod 755 /var/log/enclave
+
+# Create CloudWatch agent configuration for application logs
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << EOF
+{
+  "agent": {
+    "metrics_collection_interval": 60,
+    "run_as_user": "root"
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/var/log/nitro_enclaves/nitro_enclaves.log",
+            "log_group_name": "/aws/ec2/treza/${ENCLAVE_ID}",
+            "log_stream_name": "nitro-enclaves",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/user-data.log",
+            "log_group_name": "/aws/ec2/treza/${ENCLAVE_ID}",
+            "log_stream_name": "user-data",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/enclave/application.log",
+            "log_group_name": "/aws/nitro-enclave/${ENCLAVE_ID}/application",
+            "log_stream_name": "{instance_id}-application",
+            "timezone": "UTC",
+            "timestamp_format": "%Y-%m-%d %H:%M:%S"
+          },
+          {
+            "file_path": "/var/log/enclave/stdout.log",
+            "log_group_name": "/aws/nitro-enclave/${ENCLAVE_ID}/stdout",
+            "log_stream_name": "{instance_id}-stdout",
+            "timezone": "UTC"
+          },
+          {
+            "file_path": "/var/log/enclave/stderr.log",
+            "log_group_name": "/aws/nitro-enclave/${ENCLAVE_ID}/stderr",
+            "log_stream_name": "{instance_id}-stderr",
+            "timezone": "UTC"
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+
+echo "🚀 Starting CloudWatch agent..."
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+    -a fetch-config \
+    -m ec2 \
+    -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json \
+    -s
+
+# Function to run Docker container with logging
+run_container_with_logging() {
+    local image="$1"
+    local container_name="$2"
+    
+    echo "🐳 Starting Docker container with logging: $image"
+    
+    # Remove container if it exists
+    docker rm -f "$container_name" 2>/dev/null || true
+    
+    # Run container with log forwarding
+    docker run -d \
+        --name "$container_name" \
+        --log-driver=json-file \
+        --log-opt max-size=10m \
+        --log-opt max-file=3 \
+        "$image" > /tmp/container_id
+    
+    local container_id=$(cat /tmp/container_id)
+    echo "📋 Container started with ID: $container_id"
+    
+    # Set up log forwarding in background
+    {
+        # Forward stdout
+        docker logs -f "$container_name" 2>/dev/null | while IFS= read -r line; do
+            echo "$(date '+%Y-%m-%d %H:%M:%S') $line" >> /var/log/enclave/stdout.log
+        done &
+        
+        # Forward stderr  
+        docker logs -f "$container_name" --since=1s 2>&1 >/dev/null | while IFS= read -r line; do
+            echo "$(date '+%Y-%m-%d %H:%M:%S') $line" >> /var/log/enclave/stderr.log
+        done &
+        
+        echo "✅ Container logging setup complete"
+    } &
+}
+
+# Export function for use in systemd service
+export -f run_container_with_logging
+
+# If called directly, run the container
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    run_container_with_logging "$DOCKER_IMAGE" "$CONTAINER_NAME"
+    wait
+fi
+LOGGING_SCRIPT
+
+chmod +x /opt/enclave-logging-setup.sh
+
+# Configure basic CloudWatch agent for infrastructure logs  
 cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<EOF
 {
     "logs": {
@@ -141,6 +269,8 @@ EOF
 # Start CloudWatch agent
 systemctl enable amazon-cloudwatch-agent
 systemctl start amazon-cloudwatch-agent
+
+echo "📊 Application logging setup complete. Run '/opt/enclave-logging-setup.sh ENCLAVE_ID DOCKER_IMAGE' to start container with logging."
 
 echo "=== Nitro Enclave Setup Complete ==="
 
