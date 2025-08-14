@@ -110,8 +110,19 @@ echo ""
 
 # Initialize Terraform
 echo "=== Initializing Terraform ==="
+echo "Current directory: $(pwd)"
+echo "Files in current directory:"
+ls -la
+echo "Terraform version:"
+terraform version
+echo "AWS CLI version:"
+aws --version
+echo "Environment variables:"
+env | grep -E "(AWS|TF_)" | sort
+echo "Starting terraform init..."
 INIT_OUTPUT=$(terraform init -no-color 2>&1)
 INIT_EXIT_CODE=$?
+echo "Terraform init output:"
 echo "$INIT_OUTPUT"
 if [ $INIT_EXIT_CODE -ne 0 ]; then
     echo "ERROR: Terraform initialization failed with exit code: $INIT_EXIT_CODE"
