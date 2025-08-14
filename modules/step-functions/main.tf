@@ -144,6 +144,14 @@ resource "aws_sfn_state_machine" "deployment" {
                   {
                     Name = "SUBNET_ID"
                     Value = var.subnet_ids[0]
+                  },
+                  {
+                    Name = "AWS_DEFAULT_REGION"
+                    Value = "us-west-2"
+                  },
+                  {
+                    Name = "ENVIRONMENT"
+                    Value = "dev"
                   }
                 ]
               }
@@ -355,6 +363,14 @@ resource "aws_sfn_state_machine" "cleanup" {
                   {
                     Name = "SUBNET_ID"
                     Value = var.subnet_ids[0]
+                  },
+                  {
+                    Name = "AWS_DEFAULT_REGION"
+                    Value = "us-west-2"
+                  },
+                  {
+                    Name = "ENVIRONMENT"
+                    Value = "dev"
                   }
                 ]
               }

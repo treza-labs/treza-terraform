@@ -43,7 +43,7 @@ locals {
 resource "aws_instance" "nitro_enclave" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
-  key_name              = var.key_pair_name
+  key_name              = var.key_pair_name != "" ? var.key_pair_name : null
   vpc_security_group_ids = [aws_security_group.enclave.id]
   subnet_id             = var.subnet_id
   iam_instance_profile   = module.application_logging.cloudwatch_agent_instance_profile_name
