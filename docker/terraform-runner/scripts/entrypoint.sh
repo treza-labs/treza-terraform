@@ -105,7 +105,11 @@ terraform init -no-color
 
 # Validate configuration
 echo "=== Validating Terraform Configuration ==="
-terraform validate -no-color
+if ! terraform validate -no-color; then
+    echo "ERROR: Terraform validation failed"
+    exit 1
+fi
+echo "✓ Terraform validation passed"
 
 # Execute the requested action
 case "$ACTION" in
@@ -115,8 +119,16 @@ case "$ACTION" in
         ;;
     "deploy")
         echo "=== Running Terraform Apply ==="
-        terraform plan -no-color -out=tfplan
-        terraform apply -no-color -auto-approve tfplan
+        if ! terraform plan -no-color -out=tfplan; then
+            echo "ERROR: Terraform plan failed"
+            exit 1
+        fi
+        echo "✓ Terraform plan completed successfully"
+        
+        if ! terraform apply -no-color -auto-approve tfplan; then
+            echo "ERROR: Terraform apply failed"
+            exit 1
+        fi
         echo "=== Terraform Apply Completed Successfully ==="
         ;;
     "destroy")
