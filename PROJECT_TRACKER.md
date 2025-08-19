@@ -217,7 +217,7 @@ We've successfully implemented:
 🧪 Monitoring and error handling validation  
 
 **INTEGRATION STATUS:**
-✅ DynamoDB table: `treza-enclaves-dev` created and accessible  
+✅ DynamoDB table: `treza-enclaves` created and accessible  
 ✅ Lambda functions: Connected to DynamoDB streams  
 ✅ App configuration: Updated table names and status values  
 ✅ Status triggering: `PENDING_DEPLOY` → Lambda → Step Functions  

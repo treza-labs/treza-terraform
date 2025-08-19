@@ -69,6 +69,10 @@ resource "aws_ecs_task_definition" "terraform_runner" {
         {
           name  = "TF_STATE_DYNAMODB_TABLE"
           value = "${var.name_prefix}-terraform-locks"
+        },
+        {
+          name  = "FORCE_UPDATE"
+          value = "2025-08-14-16-22"
         }
       ]
       

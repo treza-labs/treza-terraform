@@ -30,7 +30,7 @@ resource "aws_instance" "nitro_enclave" {
     enabled = true
   }
   
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+  user_data = base64encode(templatefile("${path.module}/user_data_minimal.sh", {
     enclave_id   = var.enclave_id
     cpu_count    = var.cpu_count
     memory_mib   = var.memory_mib

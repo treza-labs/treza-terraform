@@ -13,7 +13,7 @@ resource "aws_cloudwatch_log_group" "application" {
   })
 }
 
-# CloudWatch Log Group for Container stdout/stderr
+# CloudWatch Log Group for Container stdout/enc_1755213508944_hlhgl1vbestderr
 resource "aws_cloudwatch_log_group" "container_stdout" {
   name              = "/aws/nitro-enclave/${var.enclave_id}/stdout"
   retention_in_days = var.log_retention_days
@@ -39,7 +39,7 @@ resource "aws_cloudwatch_log_group" "container_stderr" {
 
 # IAM Role for CloudWatch Agent in Enclave
 resource "aws_iam_role" "cloudwatch_agent" {
-  name = "${var.name_prefix}-cloudwatch-agent-${var.enclave_id}"
+  name = "${var.name_prefix}-cw-agent-${substr(var.enclave_id, -12, 12)}"
   
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -59,7 +59,7 @@ resource "aws_iam_role" "cloudwatch_agent" {
 
 # IAM Policy for CloudWatch Agent
 resource "aws_iam_policy" "cloudwatch_agent" {
-  name        = "${var.name_prefix}-cloudwatch-agent-${var.enclave_id}"
+  name        = "${var.name_prefix}-cw-agent-${substr(var.enclave_id, -12, 12)}"
   description = "CloudWatch agent policy for enclave ${var.enclave_id}"
   
   policy = jsonencode({
@@ -81,6 +81,17 @@ resource "aws_iam_policy" "cloudwatch_agent" {
           "${aws_cloudwatch_log_group.container_stdout.arn}:*",
           "${aws_cloudwatch_log_group.container_stderr.arn}:*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:PutParameter",
+          "ssm:GetParameter",
+          "ssm:DeleteParameter"
+        ]
+        Resource = [
+          "arn:aws:ssm:*:*:parameter/treza/${var.enclave_id}/*"
+        ]
       }
     ]
   })
@@ -96,7 +107,7 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
 
 # Instance Profile for EC2
 resource "aws_iam_instance_profile" "cloudwatch_agent" {
-  name = "${var.name_prefix}-cloudwatch-agent-${var.enclave_id}"
+  name = "${var.name_prefix}-cw-agent-${substr(var.enclave_id, -12, 12)}"
   role = aws_iam_role.cloudwatch_agent.name
   
   tags = var.tags

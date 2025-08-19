@@ -5,7 +5,7 @@ This guide will help you configure the treza-app to work with the deployed infra
 ## 📋 Prerequisites
 
 - ✅ Infrastructure deployed successfully via GitHub Actions
-- ✅ DynamoDB table `treza-enclaves-dev` created
+- ✅ DynamoDB table `treza-enclaves` created
 - ✅ Lambda functions deployed and connected to DynamoDB streams
 
 ## 🔧 Step 1: Configure Environment Variables
@@ -25,9 +25,9 @@ AWS_ACCESS_KEY_ID=your-aws-access-key-here
 AWS_SECRET_ACCESS_KEY=your-aws-secret-key-here
 
 # DynamoDB Table Names (matching deployed infrastructure)
-DYNAMODB_ENCLAVES_TABLE=treza-enclaves-dev
-DYNAMODB_TASKS_TABLE=treza-tasks-dev
-DYNAMODB_API_KEYS_TABLE=treza-api-keys-dev
+DYNAMODB_ENCLAVES_TABLE=treza-enclaves
+DYNAMODB_TASKS_TABLE=treza-tasks
+DYNAMODB_API_KEYS_TABLE=treza-api-keys
 
 # Next.js Configuration
 NEXTAUTH_URL=http://localhost:3000
@@ -72,7 +72,7 @@ The app will be available at: http://localhost:3000
 ### Watch DynamoDB:
 ```bash
 # Check if enclave was created in DynamoDB
-aws dynamodb scan --table-name treza-enclaves-dev --profile treza-admin
+aws dynamodb scan --table-name treza-enclaves --profile treza-admin
 ```
 
 ### Monitor Lambda Logs:
@@ -102,7 +102,7 @@ aws logs tail /aws/lambda/treza-dev-validation --follow --profile treza-admin
 
 ### If enclave creation fails:
 - Check AWS credentials in `.env.local`
-- Verify table name matches `treza-enclaves-dev`
+- Verify table name matches `treza-enclaves`
 - Check browser console for errors
 
 ### If Lambda isn't triggering:

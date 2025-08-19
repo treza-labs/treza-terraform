@@ -39,6 +39,7 @@ WORKDIR /terraform
 # Copy terraform modules and configuration
 COPY scripts/ /scripts/
 COPY terraform-configs/ /terraform-configs/
+COPY modules/ /modules/
 
 # Make scripts executable
 RUN chmod +x /scripts/*.sh

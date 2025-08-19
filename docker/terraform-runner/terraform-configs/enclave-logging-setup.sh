@@ -78,12 +78,27 @@ run_container_with_logging() {
     docker rm -f "$container_name" 2>/dev/null || true
     
     # Run container with log forwarding
-    docker run -d \
-        --name "$container_name" \
-        --log-driver=json-file \
-        --log-opt max-size=10m \
-        --log-opt max-file=3 \
-        "$image" > /tmp/container_id
+    # For nginx, add port mapping and ensure logging
+    if [[ "$image" == *"nginx"* ]]; then
+        docker run -d \
+            --name "$container_name" \
+            --log-driver=json-file \
+            --log-opt max-size=10m \
+            --log-opt max-file=3 \
+            -p 8080:80 \
+            "$image" > /tmp/container_id
+        
+        # Generate some initial nginx activity to create logs
+        sleep 2
+        docker exec "$container_name" sh -c "curl -s http://localhost >/dev/null || true" 2>/dev/null || true
+    else
+        docker run -d \
+            --name "$container_name" \
+            --log-driver=json-file \
+            --log-opt max-size=10m \
+            --log-opt max-file=3 \
+            "$image" > /tmp/container_id
+    fi
     
     local container_id=$(cat /tmp/container_id)
     echo "📋 Container started with ID: $container_id"
@@ -100,15 +115,49 @@ run_container_with_logging() {
             echo "$(date '+%Y-%m-%d %H:%M:%S') $line" >> /var/log/enclave/stderr.log
         done &
         
-        # Monitor container and forward application logs if they exist
+        # Monitor container and forward application logs
         while docker ps -q --filter "id=$container_id" | grep -q .; do
-            # Check if container has application logs
+            # Check if container has application logs at /app/logs/application.log
             if docker exec "$container_name" test -f /app/logs/application.log 2>/dev/null; then
                 docker exec "$container_name" tail -f /app/logs/application.log 2>/dev/null | while IFS= read -r line; do
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') $line" >> /var/log/enclave/application.log
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') [APP] $line" >> /var/log/enclave/application.log
                 done &
             fi
+            
+            # For nginx, capture access and error logs as application logs
+            if docker exec "$container_name" test -f /var/log/nginx/access.log 2>/dev/null; then
+                docker exec "$container_name" tail -f /var/log/nginx/access.log 2>/dev/null | while IFS= read -r line; do
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') [NGINX-ACCESS] $line" >> /var/log/enclave/application.log
+                done &
+            fi
+            
+            if docker exec "$container_name" test -f /var/log/nginx/error.log 2>/dev/null; then
+                docker exec "$container_name" tail -f /var/log/nginx/error.log 2>/dev/null | while IFS= read -r line; do
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') [NGINX-ERROR] $line" >> /var/log/enclave/application.log
+                done &
+            fi
+            
+            # Also capture stdout as application logs for containers that don't have specific log files
+            if [ ! -f /tmp/stdout_captured_$container_id ]; then
+                docker logs -f "$container_name" 2>/dev/null | while IFS= read -r line; do
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') [STDOUT] $line" >> /var/log/enclave/application.log
+                done &
+                touch /tmp/stdout_captured_$container_id
+            fi
+            
             sleep 10
+        done
+    } &
+    
+    # Set up periodic health check to generate application logs
+    {
+        while docker ps -q --filter "name=$container_name" | grep -q .; do
+            # Generate periodic access logs for nginx
+            if [[ "$image" == *"nginx"* ]]; then
+                docker exec "$container_name" sh -c "curl -s http://localhost >/dev/null || true" 2>/dev/null || true
+                echo "$(date '+%Y-%m-%d %H:%M:%S') [HEALTH] Health check completed for $container_name" >> /var/log/enclave/application.log
+            fi
+            sleep 30
         done
     } &
     

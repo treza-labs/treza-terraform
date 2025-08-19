@@ -16,8 +16,10 @@ terraform {
     }
   }
   
-  # Backend configuration is loaded from environments/backend-{env}.conf during init
-  # Use: terraform init -backend-config=environments/backend-dev.conf
+  backend "s3" {
+    # Configuration loaded from environments/backend-{env}.conf during init
+    # Use: terraform init -backend-config=environments/backend-dev.conf
+  }
 }
 
 provider "aws" {

@@ -35,8 +35,8 @@ variable "cpu_count" {
   default     = 2
   
   validation {
-    condition     = var.cpu_count >= 2 && var.cpu_count <= 16
-    error_message = "CPU count must be between 2 and 16."
+    condition     = var.cpu_count >= 1 && var.cpu_count <= 16
+    error_message = "CPU count must be between 1 and 16."
   }
 }
 
@@ -46,8 +46,8 @@ variable "memory_mib" {
   default     = 512
   
   validation {
-    condition     = var.memory_mib >= 512 && var.memory_mib <= 32768
-    error_message = "Memory must be between 512 MiB and 32768 MiB."
+    condition     = var.memory_mib >= 256 && var.memory_mib <= 32768
+    error_message = "Memory must be between 256 MiB and 32768 MiB."
   }
 }
 
