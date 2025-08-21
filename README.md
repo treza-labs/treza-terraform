@@ -136,48 +136,6 @@ deployment_timeout_seconds = 1800  # 30 minutes
 destroy_timeout_seconds    = 1200  # 20 minutes
 ```
 
-### 🆕 Shared Security Group Configuration
-
-The infrastructure automatically creates and manages:
-
-```hcl
-# Shared security group for all enclaves
-resource "aws_security_group" "shared_enclave" {
-  name_prefix = "${var.name_prefix}-shared-enclave-"
-  description = "Shared security group for all Nitro Enclave instances"
-  
-  # SSH access from private networks
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [local.vpc_cidr]
-  }
-  
-  # Outbound rules for AWS services
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# VPC endpoints security group
-resource "aws_security_group" "vpc_endpoints" {
-  name_prefix = "${var.name_prefix}-vpc-endpoints-"
-  description = "Security group for VPC Endpoints"
-  
-  # Allow access from shared enclave security group
-  ingress {
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.shared_enclave.id]
-  }
-}
-```
-
 ### Optional Configuration
 
 ```hcl
@@ -190,35 +148,6 @@ additional_tags = {
 # Monitoring
 log_retention_days = 30
 ```
-
-## 🔄 Workflow
-
-### 🆕 Enhanced Enclave Deployment Flow
-
-1. **Trigger**: DynamoDB record updated with `status: "PENDING_DEPLOY"`
-2. **Stream Processing**: Lambda function processes the DynamoDB stream event
-3. **Workflow Start**: Deployment Step Functions execution begins
-4. **Status Update**: Status changes to `DEPLOYING`
-5. **Validation**: Configuration validated against schema and business rules
-6. **Deployment**: ECS task runs Terraform with shared security group
-7. **Bootstrap**: Optimized user_data script configures enclave and logging
-8. **Success**: Status updated to `DEPLOYED` with immediate log access
-
-### 🆕 Fixed Enclave Cleanup Flow
-
-1. **Trigger**: DynamoDB record updated with `status: "PENDING_DESTROY"`
-2. **Workflow Start**: **Cleanup** Step Functions execution begins (not deployment!)
-3. **Status Update**: Status changes to `DESTROYING` (not `DEPLOYING`!)
-4. **Resource Cleanup**: ECS task runs Terraform destroy
-5. **Success**: Status updated to `DESTROYED`
-
-### 🛠️ Key Improvements
-
-- **✅ Shared Security Groups**: No more manual VPC endpoint configuration
-- **✅ Instant Application Logs**: CloudWatch logs appear immediately
-- **✅ Correct Termination**: Proper status progression during cleanup
-- **✅ Optimized Scripts**: User data under AWS 16KB limit
-- **✅ Architecture Fixes**: Proper linux/amd64 Docker images
 
 ## 🧪 Testing
 
@@ -429,11 +358,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 **Created**: December 2024  
 **Status**: Production Ready  
 **Version**: 2.0.0 - **Fully Automated Lifecycle Management**
-
-### 🚀 Major Achievements
-
-- ✅ **Zero Manual Intervention**: Complete automation of enclave lifecycle
-- ✅ **Instant Application Logs**: Immediate visibility into enclave operations  
-- ✅ **Robust Security**: Shared security group system with VPC endpoints
-- ✅ **Correct Termination**: Fixed status progression and cleanup workflows
-- ✅ **Production Ready**: Battle-tested infrastructure with comprehensive monitoring
