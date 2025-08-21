@@ -20,24 +20,6 @@ DynamoDB Stream → Lambda Trigger → Step Functions → ECS Terraform Runner �
 - **🆕 Shared Security Groups**: Automated VPC endpoint access for all enclaves
 - **🆕 Optimized User Data**: Efficient bootstrap scripts under AWS size limits
 
-## ✨ Latest Features (December 2024)
-
-### 🔒 **Automated Security Group Management**
-- **Shared Security Group**: All enclaves automatically use `sg-0766bf09d75f2eeff`
-- **VPC Endpoint Access**: Immediate CloudWatch Logs access without manual intervention
-- **Zero Manual Setup**: No more adding security groups to VPC endpoint rules
-
-### 🚀 **Enhanced Deployment Automation**
-- **Instant Application Logs**: Logs appear immediately after deployment
-- **Optimized User Data**: Compact bootstrap scripts under 16KB AWS limit
-- **Robust Error Handling**: Comprehensive logging and status tracking
-- **Architecture Support**: Proper linux/amd64 Docker image builds
-
-### 🔄 **Fixed Lifecycle Management**
-- **Correct Termination Flow**: Terminate button now shows `DESTROYING` → `DESTROYED`
-- **Separate Workflows**: Distinct Step Functions for deployment and cleanup
-- **Proper Status Progression**: Clear status indicators throughout enclave lifecycle
-
 ## 📋 Prerequisites
 
 - AWS CLI configured with appropriate permissions
