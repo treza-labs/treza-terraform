@@ -21,7 +21,7 @@ variable "project_name" {
 variable "existing_dynamodb_table_name" {
   description = "Name of existing DynamoDB table from treza-app"
   type        = string
-  default     = "treza-enclaves"
+  default     = "treza-enclaves-dev"
 }
 
 # Networking Configuration

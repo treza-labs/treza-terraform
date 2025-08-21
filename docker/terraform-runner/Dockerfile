@@ -37,8 +37,8 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWS_CLI_VERSION
 WORKDIR /terraform
 
 # Copy terraform modules and configuration
-COPY scripts/ /scripts/
-COPY terraform-configs/ /terraform-configs/
+COPY docker/terraform-runner/scripts/ /scripts/
+COPY docker/terraform-runner/terraform-configs/ /terraform-configs/
 COPY modules/ /modules/
 
 # Make scripts executable

@@ -1,0 +1,50 @@
+{
+  "containerDefinitions": [
+    {
+      "name": "terraform-runner",
+      "image": "314146326535.dkr.ecr.us-west-2.amazonaws.com/treza-dev-terraform-runner:latest",
+      "cpu": 0,
+      "portMappings": [],
+      "essential": true,
+      "environment": [
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "us-west-2"
+        },
+        {
+          "name": "TF_STATE_DYNAMODB_TABLE",
+          "value": "treza-dev-terraform-locks"
+        },
+        {
+          "name": "TF_STATE_BUCKET",
+          "value": "treza-dev-terraform-state-w1j2t65t"
+        },
+        {
+          "name": "FORCE_UPDATE",
+          "value": "2025-08-20-10-16-instance-type-fix"
+        }
+      ],
+      "mountPoints": [],
+      "volumesFrom": [],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/treza-dev-terraform-runner",
+          "awslogs-region": "us-west-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "systemControls": []
+    }
+  ],
+  "family": "treza-dev-terraform-runner",
+  "taskRoleArn": "arn:aws:iam::314146326535:role/treza-dev-ecs-task-role",
+  "executionRoleArn": "arn:aws:iam::314146326535:role/treza-dev-ecs-task-execution-role",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024"
+}

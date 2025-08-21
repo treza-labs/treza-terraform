@@ -39,7 +39,7 @@ resource "aws_cloudwatch_log_group" "container_stderr" {
 
 # IAM Role for CloudWatch Agent in Enclave
 resource "aws_iam_role" "cloudwatch_agent" {
-  name = "${var.name_prefix}-cw-agent-${substr(var.enclave_id, -12, 12)}"
+  name = "treza-cw-role-${substr(replace(var.enclave_id, "_", "-"), 0, 16)}"
   
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -59,7 +59,7 @@ resource "aws_iam_role" "cloudwatch_agent" {
 
 # IAM Policy for CloudWatch Agent
 resource "aws_iam_policy" "cloudwatch_agent" {
-  name        = "${var.name_prefix}-cw-agent-${substr(var.enclave_id, -12, 12)}"
+  name        = "treza-cw-policy-${substr(replace(var.enclave_id, "_", "-"), 0, 16)}"
   description = "CloudWatch agent policy for enclave ${var.enclave_id}"
   
   policy = jsonencode({
@@ -68,6 +68,7 @@ resource "aws_iam_policy" "cloudwatch_agent" {
       {
         Effect = "Allow"
         Action = [
+          "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
           "logs:DescribeLogGroups",
@@ -107,8 +108,9 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
 
 # Instance Profile for EC2
 resource "aws_iam_instance_profile" "cloudwatch_agent" {
-  name = "${var.name_prefix}-cw-agent-${substr(var.enclave_id, -12, 12)}"
+  name = "treza-cw-profile-${substr(replace(var.enclave_id, "_", "-"), 0, 16)}"
   role = aws_iam_role.cloudwatch_agent.name
   
   tags = var.tags
 }
+

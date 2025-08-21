@@ -113,7 +113,7 @@ resource "aws_sfn_state_machine" "deployment" {
             AwsvpcConfiguration = {
               Subnets = var.subnet_ids
               SecurityGroups = [var.security_group_id]
-              AssignPublicIp = "ENABLED"
+              AssignPublicIp = "DISABLED"
             }
           }
           Overrides = {
@@ -248,6 +248,7 @@ resource "aws_sfn_state_machine" "deployment" {
             }
           }
         }
+        ResultPath = "$.status_update_result"
         Next = "NotifyError"
       }
       
@@ -257,6 +258,7 @@ resource "aws_sfn_state_machine" "deployment" {
         Parameters = {
           FunctionName = var.error_handler_lambda_arn
           Payload = {
+            "enclave_id.$" = "$.enclave_id"
             "execution_name.$" = "$$.Execution.Name"
             "execution_arn.$" = "$$.Execution.Name"
             "state_machine.$" = "$$.StateMachine.Name"
@@ -336,7 +338,7 @@ resource "aws_sfn_state_machine" "cleanup" {
             AwsvpcConfiguration = {
               Subnets = var.subnet_ids
               SecurityGroups = [var.security_group_id]
-              AssignPublicIp = "ENABLED"
+              AssignPublicIp = "DISABLED"
             }
           }
           Overrides = {
@@ -467,6 +469,7 @@ resource "aws_sfn_state_machine" "cleanup" {
             }
           }
         }
+        ResultPath = "$.status_update_result"
         Next = "NotifyError"
       }
       
@@ -476,6 +479,7 @@ resource "aws_sfn_state_machine" "cleanup" {
         Parameters = {
           FunctionName = var.error_handler_lambda_arn
           Payload = {
+            "enclave_id.$" = "$.enclave_id"
             "execution_name.$" = "$$.Execution.Name"
             "execution_arn.$" = "$$.Execution.Name"
             "state_machine.$" = "$$.StateMachine.Name"

@@ -87,12 +87,12 @@ vpc_id = "$VPC_ID"
 subnet_id = "$SUBNET_ID"
 aws_region = "${AWS_DEFAULT_REGION:-us-west-2}"
 environment = "${ENVIRONMENT:-dev}"
-instance_type = "$(echo "$CONFIGURATION" | jq -r '.instance_type // "m5.2xlarge"')"
-cpu_count = $(echo "$CONFIGURATION" | jq -r '.cpu_count // 1')
-memory_mib = $(echo "$CONFIGURATION" | jq -r '.memory_mib // 256')
+instance_type = "$(echo "$CONFIGURATION" | jq -r '.instanceType // "m5.xlarge"')"
+cpu_count = $(echo "$CONFIGURATION" | jq -r '.cpuCount // 2')
+memory_mib = $(echo "$CONFIGURATION" | jq -r '.memoryMiB // 1024')
 eif_path = "$(echo "$CONFIGURATION" | jq -r '.eif_path // "https://github.com/aws/aws-nitro-enclaves-samples/releases/download/v1.0.0/hello.eif"')"
-docker_image = "$(echo "$CONFIGURATION" | jq -r '.dockerImage // "nginx:alpine"')"
-debug_mode = $(echo "$CONFIGURATION" | jq -r '.debug_mode // false')
+docker_image="$(echo "$CONFIGURATION" | jq -r '.dockerImage // "hello-world"')"
+debug_mode = $(echo "$CONFIGURATION" | jq -r '.enableDebug // false')
 key_pair_name = ""
 EOF
 
@@ -119,6 +119,9 @@ echo ""
 cat backend.tf
 echo ""
 
+# Create symlink to modules for Terraform
+ln -sf /modules modules
+
 # Initialize Terraform
 echo "=== Initializing Terraform ==="
 echo "Current directory: $(pwd)"
@@ -129,26 +132,34 @@ terraform version
 echo "✓ Terraform version check completed"
 
 # Simple test - just try to create terraform.tfvars and see if that works
-echo "Creating terraform.tfvars..."
-cat > terraform.tfvars <<EOF
+# Verify terraform.tfvars was created correctly
+echo "Verifying terraform.tfvars..."
+if [ ! -f terraform.tfvars ] || [ ! -s terraform.tfvars ]; then
+    echo "⚠️  terraform.tfvars is missing or empty, creating backup version..."
+    cat > terraform.tfvars <<EOF
 enclave_id = "$ENCLAVE_ID"
 wallet_address = "$WALLET_ADDRESS"
 vpc_id = "$VPC_ID"
 subnet_id = "$SUBNET_ID"
 aws_region = "${AWS_DEFAULT_REGION:-us-west-2}"
 environment = "${ENVIRONMENT:-dev}"
-instance_type = "m5.2xlarge"
-cpu_count = 1
-memory_mib = 256
-eif_path = "https://github.com/aws/aws-nitro-enclaves-samples/releases/download/v1.0.0/hello.eif"
-docker_image = "nginx:alpine"
-debug_mode = false
+instance_type = "$(echo "$CONFIGURATION" | jq -r '.instanceType // "m5.xlarge"')"
+cpu_count = $(echo "$CONFIGURATION" | jq -r '.cpuCount // 2')
+memory_mib = $(echo "$CONFIGURATION" | jq -r '.memoryMiB // 1024')
+eif_path = "$(echo "$CONFIGURATION" | jq -r '.eif_path // "https://github.com/aws/aws-nitro-enclaves-samples/releases/download/v1.0.0/hello.eif"')"
+docker_image="$(echo "$CONFIGURATION" | jq -r '.dockerImage // "hello-world"')"
+debug_mode = $(echo "$CONFIGURATION" | jq -r '.enableDebug // false')
 key_pair_name = ""
 EOF
+    echo "✓ Backup terraform.tfvars created"
+else
+    echo "✓ terraform.tfvars exists and is valid"
+fi
 
-echo "✓ terraform.tfvars created"
-echo "Testing file exists:"
-ls terraform.tfvars && echo "File exists!" || echo "File missing!"
+echo "Current terraform.tfvars content:"
+cat terraform.tfvars
+echo ""
+echo "✓ terraform.tfvars verified"
 
 # Initialize Terraform
 echo "=== Starting Terraform Initialization ==="
@@ -319,11 +330,33 @@ case "$ACTION" in
         echo "✅ Terraform plan completed successfully"
         
         echo "=== Running Terraform Apply ==="
-        APPLY_OUTPUT=$(terraform apply -no-color -auto-approve tfplan 2>&1)
+        # Add timeout and enhanced debugging for Terraform apply
+        echo "🔍 Starting Terraform apply with enhanced monitoring..."
+        echo "Terraform version: $(terraform version | head -1)"
+        echo "Current time: $(date)"
+        echo "Available disk space: $(df -h . | tail -1)"
+        echo "Memory usage: $(free -h || echo 'N/A')"
+        
+        # Run apply with real-time output and timeout
+        timeout 1200 bash -c '
+            terraform apply -no-color -auto-approve tfplan 2>&1 | while IFS= read -r line; do
+                echo "$(date "+%H:%M:%S") [APPLY] $line"
+                if echo "$line" | grep -q "Error\|Failed\|Timeout"; then
+                    echo "🚨 ERROR DETECTED: $line"
+                fi
+            done
+            exit ${PIPESTATUS[0]}
+        '
         APPLY_EXIT_CODE=$?
-        echo "--- Terraform Apply Output ---"
-        echo "$APPLY_OUTPUT"
-        echo "--- End Output ---"
+        echo "--- Terraform Apply Complete ---"
+        echo "Final time: $(date)"
+        if [ $APPLY_EXIT_CODE -eq 124 ]; then
+            echo "❌ Terraform apply timed out after 1200 seconds (20 minutes)"
+        elif [ $APPLY_EXIT_CODE -eq 0 ]; then
+            echo "✅ Terraform apply completed successfully"
+        else
+            echo "❌ Terraform apply failed with exit code: $APPLY_EXIT_CODE"
+        fi
         if [ $APPLY_EXIT_CODE -ne 0 ]; then
             echo "ERROR: Terraform apply failed with exit code: $APPLY_EXIT_CODE"
             exit 1
@@ -349,4 +382,39 @@ case "$ACTION" in
         ;;
 esac
 
+echo "=== 🎉 Terraform Runner Completed Successfully ==="
+exit 0
+        if [ $APPLY_EXIT_CODE -eq 124 ]; then
+            echo "❌ Terraform apply timed out after 1200 seconds (20 minutes)"
+        elif [ $APPLY_EXIT_CODE -eq 0 ]; then
+            echo "✅ Terraform apply completed successfully"
+        else
+            echo "❌ Terraform apply failed with exit code: $APPLY_EXIT_CODE"
+        fi
+        if [ $APPLY_EXIT_CODE -ne 0 ]; then
+            echo "ERROR: Terraform apply failed with exit code: $APPLY_EXIT_CODE"
+            exit 1
+        fi
+        echo "✅ Terraform apply completed successfully"
+        ;;
+    "destroy")
+        echo "=== Running Terraform Destroy ==="
+        DESTROY_OUTPUT=$(terraform destroy -no-color -auto-approve 2>&1)
+        DESTROY_EXIT_CODE=$?
+        echo "--- Terraform Destroy Output ---"
+        echo "$DESTROY_OUTPUT"
+        echo "--- End Output ---"
+        if [ $DESTROY_EXIT_CODE -ne 0 ]; then
+            echo "ERROR: Terraform destroy failed with exit code: $DESTROY_EXIT_CODE"
+            exit 1
+        fi
+        echo "✅ Terraform destroy completed successfully"
+        ;;
+    *)
+        echo "ERROR: Unknown action '$ACTION'. Supported actions: plan, deploy, destroy"
+        exit 1
+        ;;
+esac
+
+echo "=== 🎉 Terraform Runner Completed Successfully ==="
 echo "=== 🎉 Terraform Runner Completed Successfully ==="

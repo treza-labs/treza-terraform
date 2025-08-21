@@ -22,10 +22,10 @@ variable "instance_type" {
   
   validation {
     condition = contains([
-      "m5.large", "m5.xlarge", "m5.2xlarge", "m5.4xlarge",
-      "c5.large", "c5.xlarge", "c5.2xlarge", "c5.4xlarge"
+      "m5.xlarge", "m5.2xlarge", "m5.4xlarge", "m5.8xlarge", "m5.12xlarge", "m5.16xlarge", "m5.24xlarge",
+      "c5.xlarge", "c5.2xlarge", "c5.4xlarge", "c5.9xlarge", "c5.12xlarge", "c5.18xlarge", "c5.24xlarge"
     ], var.instance_type)
-    error_message = "Instance type must support Nitro Enclaves."
+    error_message = "Instance type must support Nitro Enclaves. Supported types: m5.xlarge and larger, c5.xlarge and larger."
   }
 }
 
@@ -35,19 +35,19 @@ variable "cpu_count" {
   default     = 2
   
   validation {
-    condition     = var.cpu_count >= 1 && var.cpu_count <= 16
-    error_message = "CPU count must be between 1 and 16."
+    condition     = var.cpu_count >= 2 && var.cpu_count <= 16
+    error_message = "CPU count must be between 2 and 16."
   }
 }
 
 variable "memory_mib" {
   description = "Amount of memory (MiB) to allocate to the enclave"
   type        = number
-  default     = 512
+  default     = 1024
   
   validation {
-    condition     = var.memory_mib >= 256 && var.memory_mib <= 32768
-    error_message = "Memory must be between 256 MiB and 32768 MiB."
+    condition     = var.memory_mib >= 1024 && var.memory_mib <= 32768
+    error_message = "Memory must be between 1024 MiB and 32768 MiB."
   }
 }
 
@@ -113,4 +113,6 @@ variable "log_retention_days" {
 variable "wallet_address" {
   description = "Wallet address of the enclave owner"
   type        = string
+  default     = "test-wallet-address"
+}
 }

@@ -72,7 +72,7 @@ resource "aws_ecs_task_definition" "terraform_runner" {
         },
         {
           name  = "FORCE_UPDATE"
-          value = "2025-08-14-16-22"
+          value = "2025-08-20-10-16-instance-type-fix"
         }
       ]
       
