@@ -104,7 +104,7 @@ treza-terraform/
 │   │   └── scripts/       # Enhanced build and deployment scripts
 │   └── scripts/          # Build and deployment scripts
 ├── tests/                 # Testing framework
-├── TERMINATE_FIX.md       # 🆕 Documentation for termination fixes
+
 └── README.md             # This file
 ```
 
@@ -403,7 +403,6 @@ graph LR
 - [AWS Nitro Enclaves Documentation](https://docs.aws.amazon.com/enclaves/)
 - [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest)
 - [Step Functions Documentation](https://docs.aws.amazon.com/step-functions/)
-- [🆕 TERMINATE_FIX.md](TERMINATE_FIX.md) - Details on termination workflow fixes
 
 ## 🤝 Contributing
 
