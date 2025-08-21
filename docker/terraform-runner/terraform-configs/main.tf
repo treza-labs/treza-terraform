@@ -21,7 +21,7 @@ resource "aws_instance" "nitro_enclave" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = var.instance_type
   key_name              = var.key_pair_name != "" ? var.key_pair_name : null
-  vpc_security_group_ids = [aws_security_group.enclave.id]
+  vpc_security_group_ids = var.shared_security_group_id != "" ? [var.shared_security_group_id] : ["sg-0766bf09d75f2eeff"]
   subnet_id             = var.subnet_id
   iam_instance_profile   = module.application_logging.cloudwatch_agent_instance_profile_name
   
@@ -30,7 +30,7 @@ resource "aws_instance" "nitro_enclave" {
     enabled = true
   }
   
-  user_data = base64encode(templatefile("${path.module}/user_data_minimal.sh", {
+  user_data = base64encode(templatefile("${path.module}/user_data_bootstrap.sh", {
     enclave_id   = var.enclave_id
     cpu_count    = var.cpu_count
     memory_mib   = var.memory_mib
@@ -44,43 +44,8 @@ resource "aws_instance" "nitro_enclave" {
   })
 }
 
-# Security Group for Enclave Instance
-resource "aws_security_group" "enclave" {
-  name_prefix = "${local.name_prefix}-"
-  description = "Security group for Nitro Enclave instance"
-  vpc_id      = var.vpc_id
-  
-  # SSH access (customize as needed)
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_ssh_cidrs
-    description = "SSH access"
-  }
-  
-  # Enclave communication port (customize based on your application)
-  ingress {
-    from_port   = var.enclave_port
-    to_port     = var.enclave_port
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_enclave_cidrs
-    description = "Enclave communication"
-  }
-  
-  # Outbound internet access
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "All outbound traffic"
-  }
-  
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-sg"
-  })
-}
+# Note: Using shared security group sg-0766bf09d75f2eeff for all enclaves
+# Individual security group creation removed to prevent VPC endpoint access issues
 
 # IAM Role for EC2 Instance
 resource "aws_iam_role" "enclave_instance" {

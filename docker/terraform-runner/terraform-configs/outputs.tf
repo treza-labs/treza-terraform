@@ -19,8 +19,8 @@ output "private_ip" {
 }
 
 output "security_group_id" {
-  description = "ID of the security group"
-  value       = aws_security_group.enclave.id
+  description = "ID of the security group (shared)"
+  value       = "sg-0766bf09d75f2eeff"
 }
 
 output "log_group_name" {

@@ -8,18 +8,38 @@ CONFIGURATION=${CONFIGURATION:-"{}"}
 WALLET_ADDRESS=${WALLET_ADDRESS:-""}
 VPC_ID=${VPC_ID:-""}
 SUBNET_ID=${SUBNET_ID:-""}
+SHARED_SECURITY_GROUP_ID=${SHARED_SECURITY_GROUP_ID:-""}
 TF_STATE_BUCKET=${TF_STATE_BUCKET:-""}
 TF_STATE_DYNAMODB_TABLE=${TF_STATE_DYNAMODB_TABLE:-""}
 
-echo "🚀🚀🚀 NEW TERRAFORM RUNNER VERSION 2.0 STARTED 🚀🚀🚀"
+echo "🚀🚀🚀 NEW TERRAFORM RUNNER VERSION 2.1 - DEBUG ENV VARS 🚀🚀🚀"
 echo "🔥 THIS IS THE UPDATED SCRIPT - IF YOU SEE THIS, THE UPDATE WORKED! 🔥"
+
+# Debug: Print ALL environment variables
+echo "=== ALL ENVIRONMENT VARIABLES ==="
+env | sort
+echo "=== END ENVIRONMENT VARIABLES ==="
+
 echo "Action: $ACTION"
 echo "Enclave ID: $ENCLAVE_ID" 
 echo "Wallet Address: $WALLET_ADDRESS"
 echo "VPC ID: $VPC_ID"
 echo "Subnet ID: $SUBNET_ID"
+echo "Shared Security Group ID: $SHARED_SECURITY_GROUP_ID"
 echo "State Bucket: $TF_STATE_BUCKET"
 echo "State DynamoDB Table: $TF_STATE_DYNAMODB_TABLE"
+
+# Debug: Check specific environment variable existence
+if [ -z "$SHARED_SECURITY_GROUP_ID" ]; then
+    echo "🚨 DEBUG: SHARED_SECURITY_GROUP_ID is EMPTY or UNDEFINED"
+    echo "🔍 Checking for similar variable names..."
+    env | grep -i security || echo "No security-related environment variables found"
+    env | grep -i group || echo "No group-related environment variables found"
+    env | grep -i shared || echo "No shared-related environment variables found"
+else
+    echo "✅ DEBUG: SHARED_SECURITY_GROUP_ID is set to: '$SHARED_SECURITY_GROUP_ID'"
+fi
+
 echo "🎯 Updated script is now active! 🎯"
 
 # Validate required environment variables
@@ -94,6 +114,7 @@ eif_path = "$(echo "$CONFIGURATION" | jq -r '.eif_path // "https://github.com/aw
 docker_image="$(echo "$CONFIGURATION" | jq -r '.dockerImage // "hello-world"')"
 debug_mode = $(echo "$CONFIGURATION" | jq -r '.enableDebug // false')
 key_pair_name = ""
+shared_security_group_id = "${SHARED_SECURITY_GROUP_ID:-""}"
 EOF
 
 echo "✓ Created terraform.tfvars successfully"
@@ -150,6 +171,7 @@ eif_path = "$(echo "$CONFIGURATION" | jq -r '.eif_path // "https://github.com/aw
 docker_image="$(echo "$CONFIGURATION" | jq -r '.dockerImage // "hello-world"')"
 debug_mode = $(echo "$CONFIGURATION" | jq -r '.enableDebug // false')
 key_pair_name = ""
+shared_security_group_id = "${SHARED_SECURITY_GROUP_ID:-""}"
 EOF
     echo "✓ Backup terraform.tfvars created"
 else
@@ -384,37 +406,3 @@ esac
 
 echo "=== 🎉 Terraform Runner Completed Successfully ==="
 exit 0
-        if [ $APPLY_EXIT_CODE -eq 124 ]; then
-            echo "❌ Terraform apply timed out after 1200 seconds (20 minutes)"
-        elif [ $APPLY_EXIT_CODE -eq 0 ]; then
-            echo "✅ Terraform apply completed successfully"
-        else
-            echo "❌ Terraform apply failed with exit code: $APPLY_EXIT_CODE"
-        fi
-        if [ $APPLY_EXIT_CODE -ne 0 ]; then
-            echo "ERROR: Terraform apply failed with exit code: $APPLY_EXIT_CODE"
-            exit 1
-        fi
-        echo "✅ Terraform apply completed successfully"
-        ;;
-    "destroy")
-        echo "=== Running Terraform Destroy ==="
-        DESTROY_OUTPUT=$(terraform destroy -no-color -auto-approve 2>&1)
-        DESTROY_EXIT_CODE=$?
-        echo "--- Terraform Destroy Output ---"
-        echo "$DESTROY_OUTPUT"
-        echo "--- End Output ---"
-        if [ $DESTROY_EXIT_CODE -ne 0 ]; then
-            echo "ERROR: Terraform destroy failed with exit code: $DESTROY_EXIT_CODE"
-            exit 1
-        fi
-        echo "✅ Terraform destroy completed successfully"
-        ;;
-    *)
-        echo "ERROR: Unknown action '$ACTION'. Supported actions: plan, deploy, destroy"
-        exit 1
-        ;;
-esac
-
-echo "=== 🎉 Terraform Runner Completed Successfully ==="
-echo "=== 🎉 Terraform Runner Completed Successfully ==="

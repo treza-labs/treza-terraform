@@ -152,6 +152,10 @@ resource "aws_sfn_state_machine" "deployment" {
                   {
                     Name = "ENVIRONMENT"
                     Value = "dev"
+                  },
+                  {
+                    Name = "SHARED_SECURITY_GROUP_ID"
+                    Value = var.shared_enclave_security_group_id
                   }
                 ]
               }
@@ -373,6 +377,10 @@ resource "aws_sfn_state_machine" "cleanup" {
                   {
                     Name = "ENVIRONMENT"
                     Value = "dev"
+                  },
+                  {
+                    Name = "SHARED_SECURITY_GROUP_ID"
+                    Value = var.shared_enclave_security_group_id
                   }
                 ]
               }

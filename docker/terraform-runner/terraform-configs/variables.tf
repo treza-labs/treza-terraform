@@ -115,4 +115,9 @@ variable "wallet_address" {
   type        = string
   default     = "test-wallet-address"
 }
+
+variable "shared_security_group_id" {
+  description = "ID of the shared security group for all enclave instances"
+  type        = string
+  default     = ""
 }

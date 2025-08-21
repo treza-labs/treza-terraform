@@ -56,3 +56,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "shared_enclave_security_group_id" {
+  description = "ID of the shared security group for all enclave instances"
+  type        = string
+  default     = ""
+}

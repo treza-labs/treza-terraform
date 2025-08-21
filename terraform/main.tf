@@ -69,24 +69,26 @@ module "step_functions" {
   dynamodb_table_name       = var.existing_dynamodb_table_name
   validation_lambda_arn     = module.lambda_functions.validation_function_arn
   error_handler_lambda_arn  = module.lambda_functions.error_handler_function_arn
-  deployment_timeout        = var.deployment_timeout_seconds
-  destroy_timeout           = var.destroy_timeout_seconds
-  tags                      = local.common_tags
+  deployment_timeout              = var.deployment_timeout_seconds
+  destroy_timeout                 = var.destroy_timeout_seconds
+  shared_enclave_security_group_id = module.networking.shared_enclave_security_group_id
+  tags                            = local.common_tags
 }
 
 module "ecs" {
   source = "../modules/ecs"
   
-  name_prefix                = local.name_prefix
-  cluster_name              = var.ecs_cluster_name
-  subnet_ids                = module.networking.private_subnet_ids
-  security_group_id         = module.networking.terraform_runner_security_group_id
-  task_execution_role_arn   = module.iam.ecs_task_execution_role_arn
-  task_role_arn            = module.iam.ecs_task_role_arn
-  terraform_runner_cpu      = var.terraform_runner_cpu
-  terraform_runner_memory   = var.terraform_runner_memory
-  s3_state_bucket_name     = module.state_backend.bucket_name
-  tags                     = local.common_tags
+  name_prefix                      = local.name_prefix
+  cluster_name                    = var.ecs_cluster_name
+  subnet_ids                      = module.networking.private_subnet_ids
+  security_group_id               = module.networking.terraform_runner_security_group_id
+  task_execution_role_arn         = module.iam.ecs_task_execution_role_arn
+  task_role_arn                  = module.iam.ecs_task_role_arn
+  terraform_runner_cpu            = var.terraform_runner_cpu
+  terraform_runner_memory         = var.terraform_runner_memory
+  s3_state_bucket_name           = module.state_backend.bucket_name
+  shared_enclave_security_group_id = module.networking.shared_enclave_security_group_id
+  tags                           = local.common_tags
 }
 
 module "monitoring" {
