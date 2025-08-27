@@ -49,7 +49,7 @@ log "Executing container $docker_image to capture output..."
 CONTAINER_OUTPUT=$(timeout 30 docker run --rm $docker_image 2>/dev/null || echo "Container execution failed or timed out")
 log "Container output captured: $CONTAINER_OUTPUT"
 cat > /tmp/parent.py << EOF
-import socket,json,boto3,time,sys,threading
+import socket,json,boto3,time,sys,threading,subprocess
 VMADDR_CID_ANY=-1
 VSOCK_PORT=5000
 CONTAINER_OUTPUT="""$CONTAINER_OUTPUT"""
@@ -72,6 +72,42 @@ def send_to_cloudwatch(client,log_group,log_stream,message):
   client.put_log_events(**kwargs)
   print(f"[PARENT] Logged: {message}")
  except Exception as e:print(f"[PARENT] Log error: {e}")
+def get_real_pcrs():
+ """Get real PCR values from Nitro Security Module on parent instance"""
+ try:
+  print(f"[PARENT] Attempting to get real PCR values from NSM...")
+  result = subprocess.run(['/usr/bin/nitro-cli', 'describe-enclaves'], 
+                         capture_output=True, text=True, timeout=30)
+  if result.returncode == 0 and result.stdout.strip():
+   enclave_data = json.loads(result.stdout)
+   if enclave_data and len(enclave_data) > 0:
+    measurements = enclave_data[0].get('Measurements', {})
+    if measurements:
+     pcr_values = {
+      'PCR0': measurements.get('PCR0'),
+      'PCR1': measurements.get('PCR1'), 
+      'PCR2': measurements.get('PCR2')
+     }
+     print(f"[PARENT] Successfully retrieved real PCR values: {pcr_values}")
+     return [
+      f"[PCR] PCR0: {pcr_values['PCR0']}" if pcr_values['PCR0'] else "[PCR] PCR0: unavailable",
+      f"[PCR] PCR1: {pcr_values['PCR1']}" if pcr_values['PCR1'] else "[PCR] PCR1: unavailable",
+      f"[PCR] PCR2: {pcr_values['PCR2']}" if pcr_values['PCR2'] else "[PCR] PCR2: unavailable"
+     ]
+  print(f"[PARENT] nitro-cli output: {result.stdout}")
+  print(f"[PARENT] nitro-cli error: {result.stderr}")
+ except subprocess.TimeoutExpired:
+  print(f"[PARENT] Timeout getting PCRs from nitro-cli")
+ except json.JSONDecodeError as e:
+  print(f"[PARENT] JSON decode error: {e}")
+ except Exception as e:
+  print(f"[PARENT] Error getting real PCRs: {e}")
+ print(f"[PARENT] Could not retrieve real PCR values - NSM may not be available")
+ return [
+  "[PCR] PCR0: ERROR_NSM_UNAVAILABLE",
+  "[PCR] PCR1: ERROR_NSM_UNAVAILABLE", 
+  "[PCR] PCR2: ERROR_NSM_UNAVAILABLE"
+ ]
 def handle_connection(conn,addr,client,log_group,log_stream):
  send_to_cloudwatch(client,log_group,log_stream,f"[SUCCESS] Enclave connected from CID {addr}")
  try:
@@ -87,6 +123,13 @@ def handle_connection(conn,addr,client,log_group,log_stream):
       conn.send(app_msg.encode('utf-8'))
       time.sleep(0.5)
     conn.send(b"[SUCCESS] Application output transmission complete")
+   elif "REQUEST_PCR_VALUES" in message:
+    pcr_messages = get_real_pcrs()
+    for pcr_msg in pcr_messages:
+     send_to_cloudwatch(client,log_group,log_stream,pcr_msg)
+     conn.send(pcr_msg.encode('utf-8'))
+     time.sleep(0.5)
+    conn.send(b"[SUCCESS] All PCR values transmitted")
    else:send_to_cloudwatch(client,log_group,log_stream,message);conn.send(b"ACK")
  except Exception as e:send_to_cloudwatch(client,log_group,log_stream,f"[ERROR] Connection error: {e}")
  finally:conn.close();send_to_cloudwatch(client,log_group,log_stream,"[INFO] Connection closed")
@@ -108,51 +151,13 @@ def main():
 if __name__=="__main__":main()
 EOF
 cat > /tmp/enclave.py << 'EOF'
-import socket,time,os,sys,subprocess,json
+import socket,time,os,sys
 VMADDR_CID_HOST=3
 VSOCK_PORT=5000
 def send_message(sock,message):
  sock.send(message.encode('utf-8'))
  return sock.recv(1024)
-def get_real_pcrs():
- """Get real PCR values from Nitro Security Module"""
- try:
-  print(f"[ENCLAVE] Attempting to get real PCR values from NSM...")
-  # Try to get attestation document from NSM
-  result = subprocess.run(['/usr/bin/nitro-cli', 'describe-enclaves'], 
-                         capture_output=True, text=True, timeout=30)
-  if result.returncode == 0 and result.stdout.strip():
-   enclave_data = json.loads(result.stdout)
-   if enclave_data and len(enclave_data) > 0:
-    measurements = enclave_data[0].get('Measurements', {})
-    if measurements:
-     pcr_values = {
-      'PCR0': measurements.get('PCR0'),
-      'PCR1': measurements.get('PCR1'), 
-      'PCR2': measurements.get('PCR2')
-     }
-     print(f"[ENCLAVE] Successfully retrieved real PCR values: {pcr_values}")
-     return [
-      f"[PCR] PCR0: {pcr_values['PCR0']}" if pcr_values['PCR0'] else "[PCR] PCR0: unavailable",
-      f"[PCR] PCR1: {pcr_values['PCR1']}" if pcr_values['PCR1'] else "[PCR] PCR1: unavailable",
-      f"[PCR] PCR2: {pcr_values['PCR2']}" if pcr_values['PCR2'] else "[PCR] PCR2: unavailable"
-     ]
-  print(f"[ENCLAVE] nitro-cli output: {result.stdout}")
-  print(f"[ENCLAVE] nitro-cli error: {result.stderr}")
- except subprocess.TimeoutExpired:
-  print(f"[ENCLAVE] Timeout getting PCRs from nitro-cli")
- except json.JSONDecodeError as e:
-  print(f"[ENCLAVE] JSON decode error: {e}")
- except Exception as e:
-  print(f"[ENCLAVE] Error getting real PCRs: {e}")
- 
- # If we can't get real PCRs, fail gracefully
- print(f"[ENCLAVE] Could not retrieve real PCR values - NSM may not be available")
- return [
-  "[PCR] PCR0: ERROR_NSM_UNAVAILABLE",
-  "[PCR] PCR1: ERROR_NSM_UNAVAILABLE", 
-  "[PCR] PCR2: ERROR_NSM_UNAVAILABLE"
- ]
+
 def main():
  enclave_id=os.environ.get('ENCLAVE_ID')
  container_image=os.environ.get('DOCKER_IMAGE','hello-world')
@@ -172,8 +177,17 @@ def main():
    print(f"[ENCLAVE] Connection established successfully")
    send_message(sock,f"[SUCCESS] Enclave {enclave_id} connected with image {container_image}")
    time.sleep(1)
-   pcr_messages=get_real_pcrs()
-   for msg in pcr_messages:print(f"[ENCLAVE] Sending PCR: {msg}");send_message(sock,msg);time.sleep(1)
+   print(f"[ENCLAVE] Requesting PCR values from parent...")
+   send_message(sock,f"REQUEST_PCR_VALUES for {enclave_id}")
+   pcr_count=0
+   while pcr_count < 3:
+    response=sock.recv(1024).decode('utf-8')
+    if "All PCR values transmitted" in response:break
+    if response.startswith("[PCR]"):
+     print(f"[ENCLAVE] Received PCR: {response}")
+     send_message(sock,response)
+     pcr_count+=1
+    if pcr_count>=3:break
    send_message(sock,f"[SUCCESS] All PCR values transmitted for {enclave_id}")
    print(f"[ENCLAVE] Requesting application output for {container_image}...")
    send_message(sock,f"REQUEST_CONTAINER_OUTPUT for {container_image}")
