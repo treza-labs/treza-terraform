@@ -66,10 +66,30 @@ def process_record(record, deployment_step_function_arn, cleanup_step_function_a
                 step_function_arn = deployment_step_function_arn if action == 'deploy' else cleanup_step_function_arn
                 
                 # Prepare Step Functions input
+                provider_id = new_image.get('providerId', {}).get('S', 'aws-nitro')
+                provider_config = new_image.get('providerConfig', {}).get('M', {})
+                
+                # Convert DynamoDB format to regular dict for provider config
+                config_dict = {}
+                for key, value in provider_config.items():
+                    if 'S' in value:
+                        config_dict[key] = value['S']
+                    elif 'N' in value:
+                        config_dict[key] = int(value['N'])
+                    elif 'BOOL' in value:
+                        config_dict[key] = value['BOOL']
+                
+                # Set configuration based on provider
+                if provider_id == 'aws-nitro':
+                    configuration = 'main.tf'  # Use the standard main.tf configuration
+                else:
+                    configuration = new_image.get('configuration', {}).get('S', 'main.tf')
+                
                 step_input = {
                     'enclave_id': enclave_id,
                     'action': action,
-                    'configuration': new_image.get('configuration', {}).get('S', '{}'),
+                    'configuration': json.dumps(config_dict) if config_dict else '{}',
+                    'terraform_config': configuration,  # Add separate field for Terraform config file
                     'wallet_address': wallet_address,
                     'timestamp': datetime.utcnow().isoformat()
                 }

@@ -54,7 +54,7 @@ def validate_deploy_request(enclave_id, config):
     """Validate deployment request"""
     try:
         # Apply default values for required fields if not provided
-        config.setdefault("instance_type", "m5.xlarge")
+        config.setdefault("instance_type", "m6i.xlarge")
         config.setdefault("cpu_count", 2)
         config.setdefault("memory_mib", 1024)
         config.setdefault("eif_path", "https://github.com/aws/aws-nitro-enclaves-samples/releases/download/v1.0.0/hello.eif")
@@ -66,7 +66,7 @@ def validate_deploy_request(enclave_id, config):
             "properties": {
                 "instance_type": {
                     "type": "string",
-                    "enum": ["m5.large", "m5.xlarge", "m5.2xlarge", "m5.4xlarge", "c5.large", "c5.xlarge", "c5.2xlarge", "c5.4xlarge"]
+                    "enum": ["m6i.large", "m6i.xlarge", "m6i.2xlarge", "m6i.4xlarge", "c6i.large", "c6i.xlarge", "c6i.2xlarge", "c6i.4xlarge"]
                 },
                 "cpu_count": {
                     "type": "integer",
