@@ -53,12 +53,35 @@ def handler(event, context):
 def validate_deploy_request(enclave_id, config):
     """Validate deployment request"""
     try:
+        # Normalize field names - handle both camelCase and snake_case
+        normalized_config = {}
+        
+        # Map camelCase to snake_case
+        field_mapping = {
+            'instanceType': 'instance_type',
+            'cpuCount': 'cpu_count', 
+            'memoryMiB': 'memory_mib',
+            'dockerImage': 'docker_image',
+            'enableDebug': 'debug_mode'
+        }
+        
+        # Copy and normalize field names
+        for key, value in config.items():
+            normalized_key = field_mapping.get(key, key)
+            normalized_config[normalized_key] = value
+        
         # Apply default values for required fields if not provided
-        config.setdefault("instance_type", "m6i.xlarge")
-        config.setdefault("cpu_count", 2)
-        config.setdefault("memory_mib", 1024)
-        config.setdefault("eif_path", "https://github.com/aws/aws-nitro-enclaves-samples/releases/download/v1.0.0/hello.eif")
-        config.setdefault("debug_mode", False)
+        normalized_config.setdefault("instance_type", "m6i.xlarge")
+        normalized_config.setdefault("cpu_count", 2)
+        normalized_config.setdefault("memory_mib", 1024)
+        normalized_config.setdefault("docker_image", "hello-world")
+        normalized_config.setdefault("debug_mode", False)
+        
+        # Convert string numbers to integers if needed
+        if isinstance(normalized_config.get('cpu_count'), str):
+            normalized_config['cpu_count'] = int(normalized_config['cpu_count'])
+        if isinstance(normalized_config.get('memory_mib'), str):
+            normalized_config['memory_mib'] = int(normalized_config['memory_mib'])
         
         # Define schema for enclave configuration
         config_schema = {
@@ -66,7 +89,7 @@ def validate_deploy_request(enclave_id, config):
             "properties": {
                 "instance_type": {
                     "type": "string",
-                    "enum": ["m6i.large", "m6i.xlarge", "m6i.2xlarge", "m6i.4xlarge", "c6i.large", "c6i.xlarge", "c6i.2xlarge", "c6i.4xlarge"]
+                    "enum": ["m5.large", "m5.xlarge", "m5.2xlarge", "m5.4xlarge", "m6i.large", "m6i.xlarge", "m6i.2xlarge", "m6i.4xlarge", "c6i.large", "c6i.xlarge", "c6i.2xlarge", "c6i.4xlarge"]
                 },
                 "cpu_count": {
                     "type": "integer",
@@ -78,7 +101,7 @@ def validate_deploy_request(enclave_id, config):
                     "minimum": 512,
                     "maximum": 32768
                 },
-                "eif_path": {
+                "docker_image": {
                     "type": "string",
                     "minLength": 1
                 },
@@ -86,15 +109,15 @@ def validate_deploy_request(enclave_id, config):
                     "type": "boolean"
                 }
             },
-            "required": ["instance_type", "cpu_count", "memory_mib", "eif_path"],
+            "required": ["instance_type", "cpu_count", "memory_mib", "docker_image"],
             "additionalProperties": True
         }
         
         # Validate configuration against schema
-        validate(config, config_schema)
+        validate(normalized_config, config_schema)
         
         # Additional business logic validation
-        if config.get('cpu_count', 0) > config.get('memory_mib', 0) / 512:
+        if normalized_config.get('cpu_count', 0) > normalized_config.get('memory_mib', 0) / 512:
             return create_response(False, "CPU to memory ratio is invalid")
         
         # Check if enclave already exists and is deployed
