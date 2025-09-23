@@ -76,6 +76,38 @@ variable "log_retention_days" {
   default     = 30
 }
 
+# Security Group Configuration
+variable "allowed_ssh_cidrs" {
+  description = "CIDR blocks allowed for SSH access to enclaves"
+  type        = list(string)
+  validation {
+    condition = length(var.allowed_ssh_cidrs) > 0 && !contains(var.allowed_ssh_cidrs, "0.0.0.0/0")
+    error_message = "SSH access from 0.0.0.0/0 is not allowed for security reasons. Specify specific CIDR blocks."
+  }
+}
+
+variable "management_cidrs" {
+  description = "CIDR blocks for management access"
+  type        = list(string)
+  default     = []
+}
+
+variable "security_group_rules" {
+  description = "Custom security group rules for enclaves"
+  type = object({
+    ssh_port         = number
+    enclave_port     = number
+    monitoring_port  = number
+    allowed_protocols = list(string)
+  })
+  default = {
+    ssh_port         = 22
+    enclave_port     = 8080
+    monitoring_port  = 9090
+    allowed_protocols = ["tcp", "udp"]
+  }
+}
+
 # Tags
 variable "additional_tags" {
   description = "Additional tags to apply to all resources"

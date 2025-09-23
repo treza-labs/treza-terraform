@@ -26,6 +26,17 @@ destroy_timeout_seconds    = 1800  # 30 minutes
 log_retention_days = 90  # Extended retention for compliance
 
 # Production Tags
+# Security Configuration - Production (Most Restrictive)
+allowed_ssh_cidrs = ["10.2.0.0/16"]  # Very restricted to VPC only
+management_cidrs  = ["10.2.10.0/24", "10.2.11.0/24"]  # Specific management subnets
+
+security_group_rules = {
+  ssh_port         = 2222     # Non-standard SSH port for security
+  enclave_port     = 8443     # HTTPS port for production
+  monitoring_port  = 9443     # Secure monitoring
+  allowed_protocols = ["tcp"] # Most restrictive - TCP only
+}
+
 additional_tags = {
   Team        = "infrastructure"
   CostCenter  = "engineering"

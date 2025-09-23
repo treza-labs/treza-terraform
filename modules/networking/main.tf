@@ -151,11 +151,11 @@ resource "aws_security_group" "shared_enclave" {
 
   # SSH access
   ingress {
-    from_port   = 22
-    to_port     = 22
+    from_port   = var.security_group_rules.ssh_port
+    to_port     = var.security_group_rules.ssh_port
     protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
-    description = "SSH from private networks"
+    cidr_blocks = var.allowed_ssh_cidrs
+    description = "SSH from authorized networks"
   }
 
   # HTTPS outbound for downloading packages, metadata, etc.
@@ -185,8 +185,21 @@ resource "aws_security_group" "shared_enclave" {
     description = "DNS outbound"
   }
 
+  # Add conditional development monitoring access
+  dynamic "ingress" {
+    for_each = var.environment == "dev" ? [1] : []
+    content {
+      from_port   = var.security_group_rules.monitoring_port
+      to_port     = var.security_group_rules.monitoring_port
+      protocol    = "tcp"
+      cidr_blocks = length(var.management_cidrs) > 0 ? var.management_cidrs : var.allowed_ssh_cidrs
+      description = "Development monitoring access"
+    }
+  }
+
   tags = merge(var.tags, {
     Name = "${var.name_prefix}-shared-enclave-sg"
+    Environment = var.environment
   })
 }
 

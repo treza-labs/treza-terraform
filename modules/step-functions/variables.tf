@@ -79,3 +79,13 @@ variable "shared_enclave_security_group_id" {
   type        = string
   default     = ""
 }
+
+variable "aws_region" {
+  description = "AWS region for resources"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment name (dev, staging, prod)"
+  type        = string
+}

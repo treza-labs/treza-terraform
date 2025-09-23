@@ -72,7 +72,7 @@ resource "aws_ecs_task_definition" "terraform_runner" {
         },
         {
           name  = "FORCE_UPDATE"
-          value = "2025-08-20-10-16-instance-type-fix"
+          value = "2025-08-27-16-58-real-pcr-collection"
         },
         {
           name  = "SHARED_SECURITY_GROUP_ID"

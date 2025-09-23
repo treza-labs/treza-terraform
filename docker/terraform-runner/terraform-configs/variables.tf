@@ -90,6 +90,10 @@ variable "allowed_ssh_cidrs" {
   description = "CIDR blocks allowed for SSH access"
   type        = list(string)
   default     = ["10.0.0.0/8"]
+  validation {
+    condition = length(var.allowed_ssh_cidrs) > 0 && !contains(var.allowed_ssh_cidrs, "0.0.0.0/0")
+    error_message = "SSH access from 0.0.0.0/0 is not allowed for security reasons. Specify specific CIDR blocks."
+  }
 }
 
 variable "allowed_enclave_cidrs" {
@@ -102,6 +106,16 @@ variable "enclave_port" {
   description = "Port for enclave communication"
   type        = number
   default     = 8080
+}
+
+variable "ssh_port" {
+  description = "SSH port for instance access"
+  type        = number
+  default     = 22
+  validation {
+    condition = var.ssh_port > 0 && var.ssh_port <= 65535
+    error_message = "SSH port must be between 1 and 65535."
+  }
 }
 
 variable "log_retention_days" {

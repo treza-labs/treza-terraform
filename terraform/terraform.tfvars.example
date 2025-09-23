@@ -23,6 +23,18 @@ destroy_timeout_seconds    = 1200  # 20 minutes
 # Monitoring Configuration
 log_retention_days = 30
 
+# Security Configuration
+# IMPORTANT: Replace these with your actual network CIDRs
+allowed_ssh_cidrs = ["10.0.0.0/16", "YOUR_OFFICE_IP/32"]  # Add your office IP
+management_cidrs  = ["10.0.0.0/16"]
+
+security_group_rules = {
+  ssh_port         = 22
+  enclave_port     = 8080
+  monitoring_port  = 9090
+  allowed_protocols = ["tcp", "udp"]
+}
+
 # Additional Tags (optional)
 additional_tags = {
   Team        = "infrastructure"

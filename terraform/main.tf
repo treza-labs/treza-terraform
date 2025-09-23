@@ -18,6 +18,10 @@ module "networking" {
   name_prefix        = local.name_prefix
   vpc_cidr          = var.vpc_cidr
   availability_zones = var.availability_zones
+  allowed_ssh_cidrs  = var.allowed_ssh_cidrs
+  management_cidrs   = var.management_cidrs
+  security_group_rules = var.security_group_rules
+  environment        = var.environment
   tags              = local.common_tags
 }
 
@@ -72,6 +76,8 @@ module "step_functions" {
   deployment_timeout              = var.deployment_timeout_seconds
   destroy_timeout                 = var.destroy_timeout_seconds
   shared_enclave_security_group_id = module.networking.shared_enclave_security_group_id
+  aws_region                      = var.aws_region
+  environment                     = var.environment
   tags                            = local.common_tags
 }
 

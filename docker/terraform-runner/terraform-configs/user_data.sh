@@ -49,12 +49,12 @@ log "Executing container $docker_image to capture output..."
 CONTAINER_OUTPUT=$(timeout 30 docker run --rm $docker_image 2>/dev/null || echo "Container execution failed or timed out")
 log "Container output captured: $CONTAINER_OUTPUT"
 cat > /tmp/parent.py << EOF
-import socket,json,boto3,time,sys,threading,subprocess
+import socket,json,boto3,time,sys,threading,subprocess,os
 VMADDR_CID_ANY=-1
 VSOCK_PORT=5000
 CONTAINER_OUTPUT="""$CONTAINER_OUTPUT"""
 def setup_cloudwatch(enclave_id):
- client=boto3.client('logs',region_name='us-west-2')
+ client=boto3.client('logs',region_name=os.environ.get('AWS_DEFAULT_REGION', 'us-west-2'))
  log_group=f"/aws/ec2/enclave/{enclave_id}"
  log_stream="application"
  try:client.create_log_group(logGroupName=log_group)

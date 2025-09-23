@@ -147,11 +147,11 @@ resource "aws_sfn_state_machine" "deployment" {
                   },
                   {
                     Name = "AWS_DEFAULT_REGION"
-                    Value = "us-west-2"
+                    Value = var.aws_region
                   },
                   {
                     Name = "ENVIRONMENT"
-                    Value = "dev"
+                    Value = var.environment
                   },
                   {
                     Name = "SHARED_SECURITY_GROUP_ID"
@@ -372,11 +372,11 @@ resource "aws_sfn_state_machine" "cleanup" {
                   },
                   {
                     Name = "AWS_DEFAULT_REGION"
-                    Value = "us-west-2"
+                    Value = var.aws_region
                   },
                   {
                     Name = "ENVIRONMENT"
-                    Value = "dev"
+                    Value = var.environment
                   },
                   {
                     Name = "SHARED_SECURITY_GROUP_ID"

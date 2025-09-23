@@ -26,6 +26,17 @@ destroy_timeout_seconds    = 900   # 15 minutes
 # Monitoring Configuration
 log_retention_days = 7  # Shorter retention for cost savings
 
+# Security Configuration
+allowed_ssh_cidrs = ["10.0.0.0/16", "172.16.0.0/12"]  # Private networks only
+management_cidrs  = ["10.0.0.0/16"]
+
+security_group_rules = {
+  ssh_port         = 22
+  enclave_port     = 8080
+  monitoring_port  = 9090
+  allowed_protocols = ["tcp", "udp", "icmp"]  # More permissive for dev
+}
+
 # Development Tags
 additional_tags = {
   Team         = "infrastructure"

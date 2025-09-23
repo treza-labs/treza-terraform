@@ -25,6 +25,17 @@ destroy_timeout_seconds    = 1200  # 20 minutes
 # Monitoring Configuration
 log_retention_days = 14  # Medium retention
 
+# Security Configuration
+allowed_ssh_cidrs = ["10.1.0.0/16", "172.16.0.0/12"]  # Private networks only
+management_cidrs  = ["10.1.10.0/24"]  # More restricted management access
+
+security_group_rules = {
+  ssh_port         = 22
+  enclave_port     = 8443    # HTTPS port for staging
+  monitoring_port  = 9443    # Secure monitoring
+  allowed_protocols = ["tcp"]  # More restrictive for staging
+}
+
 # Staging Tags
 additional_tags = {
   Team        = "infrastructure"

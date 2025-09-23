@@ -92,12 +92,13 @@ resource "aws_security_group" "enclave_sg" {
   description = "Security group for Nitro Enclave instances with vsocket"
   vpc_id      = data.aws_vpc.default.id
 
-  # Allow SSH access
+  # Allow SSH access from authorized networks only
   ingress {
-    from_port   = 22
-    to_port     = 22
+    from_port   = var.ssh_port
+    to_port     = var.ssh_port
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.allowed_ssh_cidrs
+    description = "SSH from authorized networks"
   }
 
   # Allow all outbound traffic
