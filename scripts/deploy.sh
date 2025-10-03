@@ -53,6 +53,40 @@ echo "✓ Prerequisites check passed"
 echo "=== Validating Terraform Configuration ==="
 cd "$TERRAFORM_DIR"
 
+# Security validation function
+validate_security_config() {
+    echo "🔒 Validating Security Configuration..."
+    
+    if [ ! -f "terraform.tfvars" ]; then
+        echo "⚠️  terraform.tfvars not found, skipping security validation"
+        return 0
+    fi
+    
+    # Check for required security variables
+    if ! grep -q "allowed_ssh_cidrs" terraform.tfvars; then
+        echo "❌ ERROR: allowed_ssh_cidrs not found in terraform.tfvars"
+        echo "   This is required for security. Please add it to your .tfvars file."
+        return 1
+    fi
+    
+    # Check for insecure SSH configuration
+    if grep -q "0.0.0.0/0" terraform.tfvars; then
+        echo "❌ ERROR: SSH access from 0.0.0.0/0 detected in terraform.tfvars"
+        echo "   This is a security risk. Please use specific CIDR blocks."
+        return 1
+    fi
+    
+    # Check for placeholder values
+    if grep -q "YOUR_OFFICE_IP" terraform.tfvars; then
+        echo "❌ ERROR: Placeholder 'YOUR_OFFICE_IP' found in terraform.tfvars"
+        echo "   Please replace with your actual office IP address."
+        return 1
+    fi
+    
+    echo "✅ Security configuration validation passed"
+    return 0
+}
+
 # Check for required files or use environment-specific configs
 if [ ! -f "terraform.tfvars" ]; then
     if [ -f "environments/${ENVIRONMENT}.tfvars" ]; then
@@ -78,6 +112,14 @@ if [ ! -f "backend.conf" ]; then
         echo "  2. Use: cp environments/backend-${ENVIRONMENT}.conf backend.conf"
         exit 1
     fi
+fi
+
+# Run security validation
+if ! validate_security_config; then
+    echo ""
+    echo "❌ Security validation failed!"
+    echo "Please fix the security configuration issues above before deploying."
+    exit 1
 fi
 
 # Validate backend configuration

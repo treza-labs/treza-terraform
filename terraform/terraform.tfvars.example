@@ -24,9 +24,18 @@ destroy_timeout_seconds    = 1200  # 20 minutes
 log_retention_days = 30
 
 # Security Configuration
-# IMPORTANT: Replace these with your actual network CIDRs
-allowed_ssh_cidrs = ["10.0.0.0/16", "YOUR_OFFICE_IP/32"]  # Add your office IP
-management_cidrs  = ["10.0.0.0/16"]
+# CRITICAL: Update these CIDRs to match your actual network topology
+# Never use 0.0.0.0/0 for SSH access - this is a security risk!
+allowed_ssh_cidrs = [
+  "10.0.0.0/16",        # VPC CIDR - allows SSH from within VPC
+  "172.16.0.0/16",      # Corporate network (REPLACE with your actual network)
+  # "203.0.113.0/24",   # Example office network (REPLACE with your public IP/CIDR)
+  # "YOUR_OFFICE_IP/32" # Add your office public IP here
+]
+management_cidrs  = [
+  "10.0.10.0/24",       # Management subnet within VPC
+  "10.0.11.0/24"        # Secondary management subnet
+]
 
 security_group_rules = {
   ssh_port         = 22

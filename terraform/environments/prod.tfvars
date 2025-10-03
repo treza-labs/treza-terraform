@@ -27,8 +27,16 @@ log_retention_days = 90  # Extended retention for compliance
 
 # Production Tags
 # Security Configuration - Production (Most Restrictive)
-allowed_ssh_cidrs = ["10.2.0.0/16"]  # Very restricted to VPC only
-management_cidrs  = ["10.2.10.0/24", "10.2.11.0/24"]  # Specific management subnets
+# Production has the most restrictive access controls
+allowed_ssh_cidrs = [
+  "10.2.0.0/16",      # Production VPC CIDR only
+  # "172.16.100.0/24"   # Specific admin network only (uncomment and customize)
+  # No broad corporate network access in production
+]
+management_cidrs  = [
+  "10.2.10.0/24",     # Production management subnet (highly restricted)
+  "10.2.11.0/24"      # Secondary production management subnet
+]
 
 security_group_rules = {
   ssh_port         = 2222     # Non-standard SSH port for security

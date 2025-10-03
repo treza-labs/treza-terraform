@@ -27,8 +27,16 @@ destroy_timeout_seconds    = 900   # 15 minutes
 log_retention_days = 7  # Shorter retention for cost savings
 
 # Security Configuration
-allowed_ssh_cidrs = ["10.0.0.0/16", "172.16.0.0/12"]  # Private networks only
-management_cidrs  = ["10.0.0.0/16"]
+# Update these CIDRs to match your actual network topology
+allowed_ssh_cidrs = [
+  "10.0.0.0/16",      # VPC CIDR - allows SSH from within VPC
+  "172.16.0.0/16",    # Corporate network (example - replace with actual)
+  # "YOUR_OFFICE_IP/32"  # Add your office public IP here
+]
+management_cidrs  = [
+  "10.0.10.0/24",     # Management subnet within VPC
+  "10.0.11.0/24"      # Secondary management subnet
+]
 
 security_group_rules = {
   ssh_port         = 22

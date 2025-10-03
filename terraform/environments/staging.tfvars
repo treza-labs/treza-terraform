@@ -26,8 +26,16 @@ destroy_timeout_seconds    = 1200  # 20 minutes
 log_retention_days = 14  # Medium retention
 
 # Security Configuration
-allowed_ssh_cidrs = ["10.1.0.0/16", "172.16.0.0/12"]  # Private networks only
-management_cidrs  = ["10.1.10.0/24"]  # More restricted management access
+# Staging uses different VPC CIDR to avoid conflicts with dev
+allowed_ssh_cidrs = [
+  "10.1.0.0/16",      # Staging VPC CIDR
+  "172.16.0.0/16",    # Corporate network (example - replace with actual)
+  # "YOUR_OFFICE_IP/32"  # Add your office public IP here
+]
+management_cidrs  = [
+  "10.1.10.0/24",     # Staging management subnet
+  "10.1.11.0/24"      # Secondary staging management subnet
+]
 
 security_group_rules = {
   ssh_port         = 22

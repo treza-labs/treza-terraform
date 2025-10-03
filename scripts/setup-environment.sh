@@ -57,8 +57,40 @@ cat backend.conf
 echo ""
 echo "✅ Environment setup complete!"
 echo ""
+# Validate security configuration
+echo "🔒 Security Configuration Validation"
+echo "===================================="
+echo ""
+
+# Check if security variables are configured
+if grep -q "allowed_ssh_cidrs" terraform.tfvars; then
+    SSH_CIDRS=$(grep "allowed_ssh_cidrs" terraform.tfvars | head -1)
+    echo "✅ SSH Access: $SSH_CIDRS"
+    
+    # Warn if using default/broad CIDRs
+    if echo "$SSH_CIDRS" | grep -q "0.0.0.0/0"; then
+        echo "⚠️  WARNING: SSH access from 0.0.0.0/0 detected - this is insecure!"
+        echo "   Please update allowed_ssh_cidrs with specific CIDR blocks"
+    elif echo "$SSH_CIDRS" | grep -q "YOUR_OFFICE_IP"; then
+        echo "⚠️  WARNING: Please replace YOUR_OFFICE_IP with your actual office IP address"
+    fi
+else
+    echo "❌ Security variables not found in terraform.tfvars"
+    echo "   This deployment will fail. Please ensure your .tfvars includes:"
+    echo "   - allowed_ssh_cidrs"
+    echo "   - security_group_rules"
+fi
+
+if grep -q "security_group_rules" terraform.tfvars; then
+    echo "✅ Security group rules configured"
+else
+    echo "❌ security_group_rules not found in terraform.tfvars"
+fi
+
+echo ""
 echo "🚀 Next steps:"
-echo "   1. Review and customize terraform.tfvars if needed"
+echo "   1. Review and customize terraform.tfvars security settings"
 echo "   2. Ensure backend S3 bucket exists in AWS"
-echo "   3. Run: ./scripts/deploy.sh $ENVIRONMENT"
+echo "   3. Update allowed_ssh_cidrs with your actual network CIDRs"
+echo "   4. Run: ./scripts/deploy.sh $ENVIRONMENT"
 echo ""
