@@ -46,7 +46,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-west-2
+        aws-region: ${{ vars.AWS_REGION || 'us-west-2' }}
     
     - name: Setup environment configuration
       run: |
@@ -226,12 +226,14 @@ jobs:
     
     - name: Login to Amazon ECR
       run: |
-        aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com
+        AWS_REGION=${{ vars.AWS_REGION || 'us-west-2' }}
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com
     
     - name: Build and push Docker image
       run: |
         cd docker/terraform-runner
-        IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/treza-${{ github.event.inputs.environment || 'dev' }}-terraform-runner:latest"
+        AWS_REGION=${{ vars.AWS_REGION || 'us-west-2' }}
+        IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/treza-${{ github.event.inputs.environment || 'dev' }}-terraform-runner:latest"
         docker build -t $IMAGE_URI .
         docker push $IMAGE_URI
         echo "✅ Docker image pushed: $IMAGE_URI"
