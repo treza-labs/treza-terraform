@@ -13,8 +13,8 @@ TF_STATE_BUCKET=${TF_STATE_BUCKET:-""}
 TF_STATE_DYNAMODB_TABLE=${TF_STATE_DYNAMODB_TABLE:-""}
 DOCKER_IMAGE=${DOCKER_IMAGE:-"hello-world"}
 
-echo "🚀🚀🚀 NEW TERRAFORM RUNNER VERSION 2.1 - DEBUG ENV VARS 🚀🚀🚀"
-echo "🔥 THIS IS THE UPDATED SCRIPT - IF YOU SEE THIS, THE UPDATE WORKED! 🔥"
+echo "🚀 Terraform Runner v2.2 - Enhanced Error Handling & Validation 🚀"
+echo "📅 Started at: $(date)"
 
 # Debug: Print ALL environment variables
 echo "=== ALL ENVIRONMENT VARIABLES ==="

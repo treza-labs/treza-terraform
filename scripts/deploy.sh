@@ -1,12 +1,17 @@
 #!/bin/bash
-set -e
+set -euo pipefail  # Enhanced error handling: exit on error, undefined vars, pipe failures
 
 # Deployment script for Treza Terraform Infrastructure
 ENVIRONMENT=${1:-dev}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-echo "=== Deploying Treza Infrastructure to $ENVIRONMENT ==="
+# Enhanced logging with timestamps
+log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"
+}
+
+log "=== Deploying Treza Infrastructure to $ENVIRONMENT ==="
 
 # Configuration
 TERRAFORM_DIR="$PROJECT_ROOT/terraform"
@@ -15,10 +20,10 @@ DOCKER_DIR="$PROJECT_ROOT/docker"
 # Validate environment
 case "$ENVIRONMENT" in
     dev|staging|prod)
-        echo "Deploying to $ENVIRONMENT environment"
+        log "✅ Deploying to $ENVIRONMENT environment"
         ;;
     *)
-        echo "Error: Invalid environment '$ENVIRONMENT'. Use: dev, staging, or prod"
+        log "❌ Error: Invalid environment '$ENVIRONMENT'. Use: dev, staging, or prod"
         exit 1
         ;;
 esac

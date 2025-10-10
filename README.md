@@ -26,6 +26,19 @@ DynamoDB Stream → Lambda Trigger → Step Functions → ECS Terraform Runner �
 - Terraform >= 1.6.0
 - Docker (for building the Terraform runner container)
 - An existing DynamoDB table from treza-app for enclave management
+- Make (for convenient commands)
+
+### 🛠️ Developer Setup (Optional but Recommended)
+```bash
+# Install development tools
+pip install pre-commit
+brew install tflint tfsec checkov shellcheck terraform-docs  # macOS
+# or
+apt-get install shellcheck  # Ubuntu
+
+# Setup development environment
+make setup-dev
+```
 
 ## 🚀 Quick Start
 
@@ -291,11 +304,23 @@ The repository includes GitHub Actions workflows for:
 For manual deployments:
 
 ```bash
-# Deploy to staging
+# Using scripts directly
 ./scripts/deploy.sh staging
-
-# Deploy to production
 ./scripts/deploy.sh production
+
+# Using Make commands (recommended)
+make deploy ENV=staging
+make deploy ENV=prod
+
+# Other useful Make commands
+make help                    # Show all available commands
+make init ENV=dev           # Initialize environment
+make plan ENV=dev           # Generate plan
+make validate               # Validate configuration
+make fmt                    # Format Terraform files
+make lint                   # Run linting tools
+make security-scan          # Run security scans
+make clean                  # Clean temporary files
 ```
 
 ## 🔧 Architecture Deep Dive

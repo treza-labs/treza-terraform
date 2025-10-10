@@ -198,8 +198,10 @@ resource "aws_security_group" "shared_enclave" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-shared-enclave-sg"
+    Name        = "${var.name_prefix}-shared-enclave-sg"
     Environment = var.environment
+    Component   = "networking"
+    Purpose     = "enclave-security"
   })
 }
 

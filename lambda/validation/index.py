@@ -4,9 +4,16 @@ import os
 import logging
 from jsonschema import validate, ValidationError  # Required: jsonschema==4.20.0
 
-# Configure logging
+# Configure logging with structured format
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO').upper())
+
+# Add structured logging format
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+for handler in logger.handlers:
+    handler.setFormatter(formatter)
 
 # Initialize AWS clients
 dynamodb = boto3.resource('dynamodb')

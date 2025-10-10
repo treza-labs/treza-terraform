@@ -3,7 +3,16 @@ resource "aws_cloudwatch_log_group" "step_functions" {
   name              = "/aws/stepfunctions/${var.name_prefix}-deployment"
   retention_in_days = var.log_retention_days
   
-  tags = var.tags
+  # Prevent accidental deletion of logs
+  lifecycle {
+    prevent_destroy = true
+  }
+  
+  tags = merge(var.tags, {
+    Name        = "${var.name_prefix}-stepfunctions-logs"
+    Component   = "step-functions"
+    LogType     = "execution"
+  })
 }
 
 # Deployment State Machine
@@ -11,13 +20,11 @@ resource "aws_sfn_state_machine" "deployment" {
   name     = "${var.name_prefix}-deployment"
   role_arn = var.step_functions_role_arn
   
-  # Temporarily disabled logging configuration to resolve IAM permissions issue
-  # Will be re-enabled after initial deployment
-  # logging_configuration {
-  #   log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
-  #   include_execution_data = true
-  #   level                  = "ALL"
-  # }
+  logging_configuration {
+    log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
+    include_execution_data = true
+    level                  = "ERROR"  # Start with ERROR level, can be changed to ALL if needed
+  }
   
   definition = jsonencode({
     Comment = "Treza Enclave Deployment Workflow"
@@ -282,13 +289,11 @@ resource "aws_sfn_state_machine" "cleanup" {
   name     = "${var.name_prefix}-cleanup"
   role_arn = var.step_functions_role_arn
   
-  # Temporarily disabled logging configuration to resolve IAM permissions issue
-  # Will be re-enabled after initial deployment
-  # logging_configuration {
-  #   log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
-  #   include_execution_data = true
-  #   level                  = "ALL"
-  # }
+  logging_configuration {
+    log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
+    include_execution_data = true
+    level                  = "ERROR"  # Start with ERROR level, can be changed to ALL if needed
+  }
   
   definition = jsonencode({
     Comment = "Treza Enclave Cleanup Workflow"
