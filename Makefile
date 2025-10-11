@@ -126,6 +126,10 @@ check-env: ## Check environment configuration
 	fi
 	@echo "$(GREEN)Environment $(ENV) configuration found$(RESET)"
 
+health-check: ## Run infrastructure health check
+	@echo "$(BLUE)Running health check for $(ENV) environment...$(RESET)"
+	./scripts/health-check.sh $(ENV)
+
 # Development shortcuts
 dev-deploy: ENV=dev
 dev-deploy: deploy ## Deploy to dev environment

@@ -49,25 +49,25 @@ TERRAFORM_FILE="${TERRAFORM_CONFIG:-$CONFIGURATION}"
 
 # Validate required environment variables
 if [ -z "$ENCLAVE_ID" ]; then
-    echo "ERROR: ENCLAVE_ID environment variable is required"
+    echo "❌ ERROR: ENCLAVE_ID environment variable is required"
     exit 1
 fi
 
 # TF_STATE_BUCKET and TF_STATE_DYNAMODB_TABLE are not required for vsocket configuration
 if [ "$TERRAFORM_FILE" != "main.tf" ]; then
     if [ -z "$TF_STATE_BUCKET" ]; then
-        echo "ERROR: TF_STATE_BUCKET environment variable is required"
+        echo "❌ ERROR: TF_STATE_BUCKET environment variable is required"
         exit 1
     fi
 
     if [ -z "$TF_STATE_DYNAMODB_TABLE" ]; then
-        echo "ERROR: TF_STATE_DYNAMODB_TABLE environment variable is required"
+        echo "❌ ERROR: TF_STATE_DYNAMODB_TABLE environment variable is required"
         exit 1
     fi
 fi
 
 if [ -z "$WALLET_ADDRESS" ]; then
-    echo "WARNING: WALLET_ADDRESS environment variable is not set"
+    echo "⚠️  WARNING: WALLET_ADDRESS environment variable is not set"
     # Set a default for backwards compatibility
     WALLET_ADDRESS="unknown"
 fi
@@ -75,12 +75,12 @@ fi
 # VPC_ID and SUBNET_ID are not required for vsocket configuration
 if [ "$TERRAFORM_FILE" != "main.tf" ]; then
     if [ -z "$VPC_ID" ]; then
-        echo "ERROR: VPC_ID environment variable is required"
+        echo "❌ ERROR: VPC_ID environment variable is required"
         exit 1
     fi
 
     if [ -z "$SUBNET_ID" ]; then
-        echo "ERROR: SUBNET_ID environment variable is required"
+        echo "❌ ERROR: SUBNET_ID environment variable is required"
         exit 1
     fi
 else

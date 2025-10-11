@@ -320,7 +320,12 @@ make validate               # Validate configuration
 make fmt                    # Format Terraform files
 make lint                   # Run linting tools
 make security-scan          # Run security scans
+make health-check ENV=dev   # Check infrastructure health
 make clean                  # Clean temporary files
+
+# Additional utility scripts
+./scripts/health-check.sh dev              # Infrastructure health check
+./scripts/import-existing-resources.sh dev # Import existing AWS resources
 ```
 
 ## 🔧 Architecture Deep Dive

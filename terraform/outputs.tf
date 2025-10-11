@@ -58,6 +58,19 @@ output "validation_function_arn" {
   value       = module.lambda_functions.validation_function_arn
 }
 
+# Security Group Outputs
+output "shared_enclave_security_group_id" {
+  description = "ID of the shared security group for all enclave instances"
+  value       = module.networking.shared_enclave_security_group_id
+  sensitive   = false
+}
+
+output "terraform_runner_security_group_id" {
+  description = "ID of the security group for Terraform runner tasks"
+  value       = module.networking.terraform_runner_security_group_id
+  sensitive   = false
+}
+
 # Monitoring Outputs
 output "cloudwatch_dashboard_url" {
   description = "URL of the CloudWatch dashboard"

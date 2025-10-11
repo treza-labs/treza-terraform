@@ -1,0 +1,47 @@
+# Git attributes for better handling of different file types
+
+# Ensure shell scripts have LF line endings
+*.sh text eol=lf
+
+# Terraform files
+*.tf text eol=lf
+*.tfvars text eol=lf
+*.hcl text eol=lf
+
+# Python files
+*.py text eol=lf
+
+# YAML files
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# JSON files
+*.json text eol=lf
+
+# Markdown files
+*.md text eol=lf
+
+# Configuration files
+*.conf text eol=lf
+*.config text eol=lf
+*.ini text eol=lf
+
+# Dockerfile
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+
+# Makefile
+Makefile text eol=lf
+*.mk text eol=lf
+
+# Ignore binary files in diffs
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+*.so binary
+
+# Mark sensitive files (they should be in .gitignore anyway)
+*.key binary
+*.pem binary
+*.p12 binary
+*.pfx binary
