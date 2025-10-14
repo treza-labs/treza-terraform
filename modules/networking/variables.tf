@@ -51,3 +51,9 @@ variable "environment" {
   description = "Environment name"
   type        = string
 }
+
+variable "external_dns_cidrs" {
+  description = "List of CIDR blocks for external DNS servers. If null, allows all (0.0.0.0/0)"
+  type        = list(string)
+  default     = null
+}

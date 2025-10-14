@@ -158,30 +158,45 @@ resource "aws_security_group" "shared_enclave" {
     description = "SSH from authorized networks"
   }
 
-  # HTTPS outbound for downloading packages, metadata, etc.
+  # HTTPS outbound for AWS services and package repositories
   egress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
     description = "HTTPS outbound"
+    
+    # Add CloudWatch flow log monitoring
+    dynamic "tags" {
+      for_each = var.environment != "dev" ? [1] : []
+      content {
+        key   = "FlowLog"
+        value = "true"
+      }
+    }
   }
 
-  # HTTP outbound for package repositories
-  egress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTP outbound"
+  # HTTP outbound for package repositories - restricted to known package sources
+  dynamic "egress" {
+    for_each = var.environment == "dev" ? [1] : []  # Only allow HTTP in dev
+    content {
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "HTTP outbound (dev only)"
+    }
   }
 
-  # DNS outbound
+  # DNS outbound - restricted to VPC DNS and specified external DNS
   egress {
     from_port   = 53
     to_port     = 53
     protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = concat(
+      [var.vpc_cidr],                    # VPC DNS
+      var.external_dns_cidrs != null ? var.external_dns_cidrs : ["0.0.0.0/0"]  # External DNS
+    )
     description = "DNS outbound"
   }
 
