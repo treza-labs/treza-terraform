@@ -3,6 +3,11 @@ variable "aws_region" {
   description = "AWS region for resources"
   type        = string
   default     = "us-west-2"
+
+  validation {
+    condition = contains(["us-west-1", "us-west-2", "us-east-1", "us-east-2"], var.aws_region)
+    error_message = "AWS region must be one of: us-west-1, us-west-2, us-east-1, us-east-2."
+  }
 }
 
 variable "environment" {
