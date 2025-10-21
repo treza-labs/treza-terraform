@@ -1,7 +1,7 @@
 # Treza Terraform Infrastructure Makefile
 # Provides convenient commands for common operations
 
-.PHONY: help init plan apply destroy validate fmt lint test clean setup-dev setup-prod
+.PHONY: help init plan apply destroy validate fmt lint test clean setup-dev setup-prod validate-env validate-backend validate-config validate-all pre-deploy
 
 # Default environment
 ENV ?= dev
@@ -11,25 +11,55 @@ RED    := \033[31m
 GREEN  := \033[32m
 YELLOW := \033[33m
 BLUE   := \033[34m
+PURPLE := \033[35m
+CYAN   := \033[36m
 RESET  := \033[0m
+
+# Configuration paths
+TERRAFORM_DIR := terraform
+ENV_FILE := $(TERRAFORM_DIR)/environments/$(ENV).tfvars
+BACKEND_FILE := $(TERRAFORM_DIR)/environments/backend-$(ENV).conf
+TFVARS_FILE := $(TERRAFORM_DIR)/terraform.tfvars
+BACKEND_CONF := $(TERRAFORM_DIR)/backend.conf
 
 help: ## Show this help message
 	@echo "$(BLUE)Treza Terraform Infrastructure$(RESET)"
-	@echo "Available commands:"
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ {printf "  $(GREEN)%-15s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo "Current environment: $(CYAN)$(ENV)$(RESET)"
+	@echo ""
+	@echo "$(PURPLE)Core Commands:$(RESET)"
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ && !/validate-|pre-|dev-|staging-|prod-/ {printf "  $(GREEN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "$(PURPLE)Validation Commands:$(RESET)"
+	@awk 'BEGIN {FS = ":.*##"} /^validate-.*:.*##/ {printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "$(PURPLE)Environment Shortcuts:$(RESET)"
+	@awk 'BEGIN {FS = ":.*##"} /^(dev-|staging-|prod-).*:.*##/ {printf "  $(YELLOW)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo ""
+	@echo "$(PURPLE)Usage Examples:$(RESET)"
+	@echo "  make validate-all ENV=staging  # Validate staging environment"
+	@echo "  make pre-deploy ENV=prod       # Pre-deployment checks for production"
+	@echo "  make dev-deploy               # Quick deploy to dev environment"
 
-init: ## Initialize Terraform for specified environment
+init: validate-env validate-backend ## Initialize Terraform for specified environment
 	@echo "$(BLUE)Initializing Terraform for $(ENV) environment...$(RESET)"
-	./scripts/setup-environment.sh $(ENV)
-	cd terraform && terraform init -backend-config=backend.conf
+	@cp $(ENV_FILE) $(TFVARS_FILE)
+	@cp $(BACKEND_FILE) $(BACKEND_CONF)
+	@cd $(TERRAFORM_DIR) && terraform init -backend-config=backend.conf
+	@echo "$(GREEN)✅ Terraform initialized for $(ENV) environment$(RESET)"
 
-plan: ## Generate Terraform plan
+plan: init ## Generate Terraform plan
 	@echo "$(BLUE)Generating Terraform plan for $(ENV)...$(RESET)"
-	cd terraform && terraform plan -out=tfplan
+	@cd $(TERRAFORM_DIR) && terraform plan -var-file=terraform.tfvars -out=tfplan-$(ENV)
+	@echo "$(GREEN)✅ Plan generated: tfplan-$(ENV)$(RESET)"
 
 apply: ## Apply Terraform configuration
 	@echo "$(BLUE)Applying Terraform configuration for $(ENV)...$(RESET)"
-	cd terraform && terraform apply tfplan
+	@if [ ! -f "$(TERRAFORM_DIR)/tfplan-$(ENV)" ]; then \
+		echo "$(RED)❌ No plan file found. Run 'make plan ENV=$(ENV)' first$(RESET)"; \
+		exit 1; \
+	fi
+	@cd $(TERRAFORM_DIR) && terraform apply tfplan-$(ENV)
+	@echo "$(GREEN)✅ Infrastructure deployed successfully$(RESET)"
 
 deploy: ## Full deployment (init + plan + apply)
 	@echo "$(BLUE)Deploying to $(ENV) environment...$(RESET)"
@@ -79,9 +109,14 @@ build-docker: ## Build Docker images
 
 clean: ## Clean temporary files
 	@echo "$(BLUE)Cleaning temporary files...$(RESET)"
-	find . -name ".terraform" -type d -exec rm -rf {} + 2>/dev/null || true
-	find . -name "*.tfplan" -delete 2>/dev/null || true
-	find . -name "terraform.tfstate.backup" -delete 2>/dev/null || true
+	@find . -name ".terraform" -type d -exec rm -rf {} + 2>/dev/null || true
+	@find . -name "tfplan-*" -delete 2>/dev/null || true
+	@find . -name "*.tfplan" -delete 2>/dev/null || true
+	@find . -name "terraform.tfstate.backup" -delete 2>/dev/null || true
+	@find . -name ".terraform.lock.hcl" -delete 2>/dev/null || true
+	@rm -f $(TERRAFORM_DIR)/terraform.tfvars 2>/dev/null || true
+	@rm -f $(TERRAFORM_DIR)/backend.conf 2>/dev/null || true
+	@echo "$(GREEN)✅ Cleanup complete$(RESET)"
 
 setup-dev: ## Setup development environment
 	@echo "$(BLUE)Setting up development environment...$(RESET)"
@@ -118,17 +153,141 @@ security-scan: ## Run security scans
 		echo "$(YELLOW)checkov not installed, skipping...$(RESET)"; \
 	fi
 
-check-env: ## Check environment configuration
-	@echo "$(BLUE)Checking $(ENV) environment configuration...$(RESET)"
-	@if [ ! -f "terraform/environments/$(ENV).tfvars" ]; then \
-		echo "$(RED)Environment file not found: terraform/environments/$(ENV).tfvars$(RESET)"; \
-		exit 1; \
-	fi
-	@echo "$(GREEN)Environment $(ENV) configuration found$(RESET)"
+check-env: validate-env ## Check environment configuration (alias for validate-env)
+	@echo "$(GREEN)✅ Environment $(ENV) configuration validated$(RESET)"
 
 health-check: ## Run infrastructure health check
 	@echo "$(BLUE)Running health check for $(ENV) environment...$(RESET)"
 	./scripts/health-check.sh $(ENV)
+
+switch-env: ## Switch to specified environment (usage: make switch-env ENV=staging)
+	@echo "$(BLUE)Switching to $(ENV) environment...$(RESET)"
+	./scripts/switch-environment.sh $(ENV)
+
+show-env: ## Show current environment status
+	@echo "$(BLUE)Current environment status:$(RESET)"
+	./scripts/switch-environment.sh status
+
+validate-env: ## Validate environment configuration exists
+	@echo "$(BLUE)Validating $(ENV) environment configuration...$(RESET)"
+	@if [ ! -f "$(ENV_FILE)" ]; then \
+		echo "$(RED)❌ Environment file not found: $(ENV_FILE)$(RESET)"; \
+		echo "$(YELLOW)Available environments:$(RESET)"; \
+		ls -1 $(TERRAFORM_DIR)/environments/*.tfvars 2>/dev/null | sed 's/.*environments\//  - /' | sed 's/\.tfvars//' || echo "  No environment files found"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✅ Environment file found: $(ENV_FILE)$(RESET)"
+
+validate-backend: ## Validate backend configuration exists and is accessible
+	@echo "$(BLUE)Validating backend configuration for $(ENV)...$(RESET)"
+	@if [ ! -f "$(BACKEND_FILE)" ]; then \
+		echo "$(RED)❌ Backend file not found: $(BACKEND_FILE)$(RESET)"; \
+		echo "$(YELLOW)Available backend configs:$(RESET)"; \
+		ls -1 $(TERRAFORM_DIR)/environments/backend-*.conf 2>/dev/null | sed 's/.*environments\//  - /' || echo "  No backend files found"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✅ Backend file found: $(BACKEND_FILE)$(RESET)"
+	@echo "$(BLUE)Testing backend connectivity...$(RESET)"
+	@BUCKET=$$(grep '^bucket' $(BACKEND_FILE) | cut -d'"' -f2 | tr -d ' '); \
+	REGION=$$(grep '^region' $(BACKEND_FILE) | cut -d'"' -f2 | tr -d ' '); \
+	TABLE=$$(grep '^dynamodb_table' $(BACKEND_FILE) | cut -d'"' -f2 | tr -d ' '); \
+	if [ -z "$$BUCKET" ] || [ -z "$$REGION" ] || [ -z "$$TABLE" ]; then \
+		echo "$(RED)❌ Invalid backend configuration format$(RESET)"; \
+		exit 1; \
+	fi; \
+	if aws s3 ls "s3://$$BUCKET" --region "$$REGION" >/dev/null 2>&1; then \
+		echo "$(GREEN)✅ S3 bucket accessible: $$BUCKET$(RESET)"; \
+	else \
+		echo "$(RED)❌ S3 bucket not accessible: $$BUCKET$(RESET)"; \
+		exit 1; \
+	fi; \
+	if aws dynamodb describe-table --table-name "$$TABLE" --region "$$REGION" >/dev/null 2>&1; then \
+		echo "$(GREEN)✅ DynamoDB table accessible: $$TABLE$(RESET)"; \
+	else \
+		echo "$(RED)❌ DynamoDB table not accessible: $$TABLE$(RESET)"; \
+		exit 1; \
+	fi
+
+validate-config: ## Validate Terraform configuration files
+	@echo "$(BLUE)Validating Terraform configuration...$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform fmt -check=true -diff=true
+	@cd $(TERRAFORM_DIR) && terraform validate
+	@echo "$(GREEN)✅ Terraform configuration is valid$(RESET)"
+	@echo "$(BLUE)Checking for required variables...$(RESET)"
+	@if [ -f "$(ENV_FILE)" ]; then \
+		MISSING_VARS=""; \
+		for var in aws_region environment project_name existing_dynamodb_table_name vpc_cidr availability_zones; do \
+			if ! grep -q "^$$var" $(ENV_FILE); then \
+				MISSING_VARS="$$MISSING_VARS $$var"; \
+			fi; \
+		done; \
+		if [ -n "$$MISSING_VARS" ]; then \
+			echo "$(RED)❌ Missing required variables:$$MISSING_VARS$(RESET)"; \
+			exit 1; \
+		else \
+			echo "$(GREEN)✅ All required variables present$(RESET)"; \
+		fi; \
+	fi
+
+validate-aws: ## Validate AWS credentials and permissions
+	@echo "$(BLUE)Validating AWS credentials and permissions...$(RESET)"
+	@if ! aws sts get-caller-identity >/dev/null 2>&1; then \
+		echo "$(RED)❌ AWS credentials not configured or invalid$(RESET)"; \
+		exit 1; \
+	fi
+	@ACCOUNT_ID=$$(aws sts get-caller-identity --query Account --output text); \
+	USER_ARN=$$(aws sts get-caller-identity --query Arn --output text); \
+	echo "$(GREEN)✅ AWS credentials valid$(RESET)"; \
+	echo "  Account: $$ACCOUNT_ID"; \
+	echo "  Identity: $$USER_ARN"
+	@echo "$(BLUE)Checking required AWS permissions...$(RESET)"
+	@REGION=$$(aws configure get region || echo "us-west-2"); \
+	ERRORS=0; \
+	for service in ec2 ecs lambda stepfunctions dynamodb s3 iam logs; do \
+		case $$service in \
+			ec2) ACTION="ec2:DescribeVpcs" ;; \
+			ecs) ACTION="ecs:ListClusters" ;; \
+			lambda) ACTION="lambda:ListFunctions" ;; \
+			stepfunctions) ACTION="states:ListStateMachines" ;; \
+			dynamodb) ACTION="dynamodb:ListTables" ;; \
+			s3) ACTION="s3:ListAllMyBuckets" ;; \
+			iam) ACTION="iam:ListRoles" ;; \
+			logs) ACTION="logs:DescribeLogGroups" ;; \
+		esac; \
+		if aws $$service $${ACTION#*:} --region $$REGION >/dev/null 2>&1; then \
+			echo "$(GREEN)✅ $$service permissions OK$(RESET)"; \
+		else \
+			echo "$(RED)❌ $$service permissions missing$(RESET)"; \
+			ERRORS=$$((ERRORS + 1)); \
+		fi; \
+	done; \
+	if [ $$ERRORS -gt 0 ]; then \
+		echo "$(RED)❌ $$ERRORS permission check(s) failed$(RESET)"; \
+		exit 1; \
+	fi
+
+validate-all: validate-env validate-backend validate-aws validate-config ## Run all validation checks
+	@echo "$(GREEN)🎉 All validations passed for $(ENV) environment!$(RESET)"
+
+pre-deploy: validate-all ## Run comprehensive pre-deployment checks
+	@echo "$(BLUE)Running pre-deployment checks for $(ENV)...$(RESET)"
+	@if [ "$(ENV)" = "prod" ]; then \
+		echo "$(YELLOW)⚠️  Production deployment detected!$(RESET)"; \
+		echo "$(YELLOW)Please confirm the following:$(RESET)"; \
+		echo "  1. All changes have been tested in staging"; \
+		echo "  2. Deployment has been approved"; \
+		echo "  3. Maintenance window is active (if required)"; \
+		echo "  4. Rollback plan is prepared"; \
+		read -p "Continue with production deployment? (yes/no): " confirm; \
+		if [ "$$confirm" != "yes" ]; then \
+			echo "$(YELLOW)Deployment cancelled$(RESET)"; \
+			exit 1; \
+		fi; \
+	fi
+	@echo "$(BLUE)Generating deployment plan...$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform plan -var-file=../$(ENV_FILE) -out=tfplan-$(ENV)
+	@echo "$(GREEN)✅ Pre-deployment checks complete$(RESET)"
+	@echo "$(BLUE)Ready to deploy with: make apply ENV=$(ENV)$(RESET)"
 
 # Development shortcuts
 dev-deploy: ENV=dev

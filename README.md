@@ -312,20 +312,32 @@ For manual deployments:
 make deploy ENV=staging
 make deploy ENV=prod
 
-# Other useful Make commands
-make help                    # Show all available commands
-make init ENV=dev           # Initialize environment
-make plan ENV=dev           # Generate plan
-make validate               # Validate configuration
+# 🆕 Enhanced Make commands with comprehensive validation
+make help                    # Show all available commands with categorized help
+make init ENV=dev           # Initialize environment with validation
+make plan ENV=dev           # Generate plan with environment-specific configs
+make validate-all ENV=dev   # Run comprehensive validation checks
+make pre-deploy ENV=prod    # Pre-deployment checks with production safeguards
+make switch-env ENV=staging # Switch between environments seamlessly
+make show-env               # Show current environment status
+make validate-aws           # Validate AWS credentials and permissions
+make validate-backend       # Test backend connectivity
+make validate-config        # Validate Terraform configuration
 make fmt                    # Format Terraform files
 make lint                   # Run linting tools
 make security-scan          # Run security scans
 make health-check ENV=dev   # Check infrastructure health
 make clean                  # Clean temporary files
 
-# Additional utility scripts
+# 🆕 Additional utility scripts
 ./scripts/health-check.sh dev              # Infrastructure health check
+./scripts/switch-environment.sh staging    # Environment switching utility
 ./scripts/import-existing-resources.sh dev # Import existing AWS resources
+
+# 🆕 New Developer Experience Features
+make validate-all ENV=staging  # Comprehensive validation before deployment
+make pre-deploy ENV=prod       # Production-safe deployment with confirmations
+make switch-env ENV=dev        # Quick environment switching with validation
 ```
 
 ## 🔧 Architecture Deep Dive
