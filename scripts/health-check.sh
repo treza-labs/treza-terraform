@@ -13,6 +13,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Track errors and warnings
+ERROR_COUNT=0
+WARNING_COUNT=0
+
 # Logging function
 log() {
     echo -e "[$(date +'%Y-%m-%d %H:%M:%S')] $*"
@@ -24,10 +28,12 @@ success() {
 
 warning() {
     echo -e "${YELLOW}⚠️  $*${NC}"
+    ((WARNING_COUNT++))
 }
 
 error() {
     echo -e "${RED}❌ $*${NC}"
+    ((ERROR_COUNT++))
 }
 
 info() {
@@ -190,15 +196,19 @@ fi
 echo ""
 echo "================================================================="
 log "🏥 Health Check Complete for $ENVIRONMENT environment"
+echo ""
 
-# Count warnings and errors (simplified check)
-if grep -q "❌" /tmp/health_check.log 2>/dev/null; then
-    error "Some components failed health checks. Review the output above."
+# Display summary based on error and warning counts
+if [ $ERROR_COUNT -gt 0 ]; then
+    error "Health check failed with $ERROR_COUNT error(s) and $WARNING_COUNT warning(s)."
+    echo -e "${RED}Some components failed health checks. Review the output above.${NC}"
     exit 1
-elif grep -q "⚠️" /tmp/health_check.log 2>/dev/null; then
-    warning "Some components have warnings. Review the output above."
+elif [ $WARNING_COUNT -gt 0 ]; then
+    warning "Health check completed with $WARNING_COUNT warning(s)."
+    echo -e "${YELLOW}Some components have warnings. Review the output above.${NC}"
     exit 0
 else
     success "All infrastructure components are healthy! 🎉"
+    echo -e "${GREEN}No errors or warnings detected.${NC}"
     exit 0
 fi
