@@ -1,7 +1,7 @@
 # Treza Terraform Infrastructure Makefile
 # Provides convenient commands for common operations
 
-.PHONY: help init plan apply destroy validate fmt lint test clean setup-dev setup-prod validate-env validate-backend validate-config validate-all pre-deploy
+.PHONY: help init plan apply destroy validate fmt lint test clean setup-dev setup-prod validate-env validate-backend validate-config validate-all pre-deploy status
 
 # Default environment
 ENV ?= dev
@@ -167,6 +167,91 @@ switch-env: ## Switch to specified environment (usage: make switch-env ENV=stagi
 show-env: ## Show current environment status
 	@echo "$(BLUE)Current environment status:$(RESET)"
 	./scripts/switch-environment.sh status
+
+status: ## Show comprehensive infrastructure status
+	@echo "$(BLUE)═══════════════════════════════════════════════════════════$(RESET)"
+	@echo "$(CYAN)       Treza Infrastructure Status Dashboard$(RESET)"
+	@echo "$(BLUE)═══════════════════════════════════════════════════════════$(RESET)"
+	@echo ""
+	@echo "$(PURPLE)Environment Configuration:$(RESET)"
+	@echo "  Target Environment: $(CYAN)$(ENV)$(RESET)"
+	@if [ -f "$(TFVARS_FILE)" ]; then \
+		echo "  Status: $(GREEN)✅ Configured$(RESET)"; \
+		REGION=$$(grep '^aws_region' $(TFVARS_FILE) | cut -d'=' -f2 | tr -d ' "'); \
+		PROJECT=$$(grep '^project_name' $(TFVARS_FILE) | cut -d'=' -f2 | tr -d ' "'); \
+		if [ -n "$$REGION" ]; then echo "  Region: $$REGION"; fi; \
+		if [ -n "$$PROJECT" ]; then echo "  Project: $$PROJECT"; fi; \
+	else \
+		echo "  Status: $(YELLOW)⚠️  Not initialized$(RESET)"; \
+	fi
+	@echo ""
+	@echo "$(PURPLE)AWS Account:$(RESET)"
+	@if aws sts get-caller-identity >/dev/null 2>&1; then \
+		ACCOUNT_ID=$$(aws sts get-caller-identity --query Account --output text 2>/dev/null); \
+		USER_ARN=$$(aws sts get-caller-identity --query Arn --output text 2>/dev/null); \
+		REGION=$$(aws configure get region 2>/dev/null || echo "not set"); \
+		echo "  Account ID: $$ACCOUNT_ID"; \
+		echo "  Identity: $$USER_ARN"; \
+		echo "  Default Region: $$REGION"; \
+		echo "  Status: $(GREEN)✅ Authenticated$(RESET)"; \
+	else \
+		echo "  Status: $(RED)❌ Not authenticated$(RESET)"; \
+	fi
+	@echo ""
+	@echo "$(PURPLE)Backend Configuration:$(RESET)"
+	@if [ -f "$(BACKEND_CONF)" ]; then \
+		BUCKET=$$(grep '^bucket' $(BACKEND_CONF) | cut -d'=' -f2 | tr -d ' "'); \
+		REGION=$$(grep '^region' $(BACKEND_CONF) | cut -d'=' -f2 | tr -d ' "'); \
+		TABLE=$$(grep '^dynamodb_table' $(BACKEND_CONF) | cut -d'=' -f2 | tr -d ' "'); \
+		echo "  S3 Bucket: $$BUCKET"; \
+		echo "  DynamoDB Table: $$TABLE"; \
+		echo "  Region: $$REGION"; \
+		if aws s3 ls "s3://$$BUCKET" --region "$$REGION" >/dev/null 2>&1; then \
+			STATE_SIZE=$$(aws s3 ls "s3://$$BUCKET" --region "$$REGION" --recursive --summarize 2>/dev/null | grep "Total Size" | awk '{print $$3}'); \
+			if [ -n "$$STATE_SIZE" ]; then \
+				STATE_SIZE_MB=$$((STATE_SIZE / 1024 / 1024)); \
+				echo "  State Size: $${STATE_SIZE_MB}MB"; \
+			fi; \
+			echo "  Status: $(GREEN)✅ Backend accessible$(RESET)"; \
+		else \
+			echo "  Status: $(RED)❌ Backend not accessible$(RESET)"; \
+		fi; \
+	else \
+		echo "  Status: $(YELLOW)⚠️  Not configured$(RESET)"; \
+	fi
+	@echo ""
+	@echo "$(PURPLE)Terraform State:$(RESET)"
+	@if [ -d "$(TERRAFORM_DIR)/.terraform" ]; then \
+		echo "  Initialization: $(GREEN)✅ Initialized$(RESET)"; \
+		if [ -f "$(TERRAFORM_DIR)/.terraform/terraform.tfstate" ]; then \
+			BACKEND_TYPE=$$(grep -o '"type":"[^"]*"' $(TERRAFORM_DIR)/.terraform/terraform.tfstate 2>/dev/null | cut -d'"' -f4); \
+			if [ -n "$$BACKEND_TYPE" ]; then echo "  Backend Type: $$BACKEND_TYPE"; fi; \
+		fi; \
+		WORKSPACE=$$(cd $(TERRAFORM_DIR) && terraform workspace show 2>/dev/null || echo "default"); \
+		if [ -n "$$WORKSPACE" ]; then echo "  Workspace: $$WORKSPACE"; fi; \
+	else \
+		echo "  Initialization: $(YELLOW)⚠️  Not initialized$(RESET)"; \
+		echo "  Run: $(CYAN)make init ENV=$(ENV)$(RESET)"; \
+	fi
+	@echo ""
+	@echo "$(PURPLE)Available Environments:$(RESET)"
+	@for env in dev staging prod; do \
+		if [ -f "$(TERRAFORM_DIR)/environments/$$env.tfvars" ]; then \
+			if [ "$$env" = "$(ENV)" ]; then \
+				echo "  $(GREEN)▶$(RESET) $$env (active)"; \
+			else \
+				echo "    $$env"; \
+			fi; \
+		fi; \
+	done
+	@echo ""
+	@echo "$(PURPLE)Quick Commands:$(RESET)"
+	@echo "  Initialize:     $(CYAN)make init ENV=$(ENV)$(RESET)"
+	@echo "  Plan changes:   $(CYAN)make plan ENV=$(ENV)$(RESET)"
+	@echo "  Deploy:         $(CYAN)make deploy ENV=$(ENV)$(RESET)"
+	@echo "  Validate all:   $(CYAN)make validate-all ENV=$(ENV)$(RESET)"
+	@echo ""
+	@echo "$(BLUE)═══════════════════════════════════════════════════════════$(RESET)"
 
 validate-env: ## Validate environment configuration exists
 	@echo "$(BLUE)Validating $(ENV) environment configuration...$(RESET)"
