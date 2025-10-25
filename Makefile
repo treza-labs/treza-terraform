@@ -1,7 +1,7 @@
 # Treza Terraform Infrastructure Makefile
 # Provides convenient commands for common operations
 
-.PHONY: help init plan apply destroy validate fmt lint test clean setup-dev setup-prod validate-env validate-backend validate-config validate-all pre-deploy status
+.PHONY: help init plan apply destroy validate fmt lint test clean setup-dev setup-prod validate-env validate-backend validate-config validate-all pre-deploy status logs
 
 # Default environment
 ENV ?= dev
@@ -167,6 +167,9 @@ switch-env: ## Switch to specified environment (usage: make switch-env ENV=stagi
 show-env: ## Show current environment status
 	@echo "$(BLUE)Current environment status:$(RESET)"
 	./scripts/switch-environment.sh status
+
+logs: ## View logs from infrastructure components (interactive)
+	@./scripts/view-logs.sh $(ENV)
 
 status: ## Show comprehensive infrastructure status
 	@echo "$(BLUE)═══════════════════════════════════════════════════════════$(RESET)"
