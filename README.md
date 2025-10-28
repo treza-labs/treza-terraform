@@ -322,6 +322,7 @@ make switch-env ENV=staging # Switch between environments seamlessly
 make show-env               # Show current environment status
 make validate-aws           # Validate AWS credentials and permissions
 make validate-backend       # Test backend connectivity
+make compare-backends       # Compare backend configurations across all environments
 make validate-config        # Validate Terraform configuration
 make fmt                    # Format Terraform files
 make lint                   # Run linting tools
@@ -333,6 +334,7 @@ make clean                  # Clean temporary files
 ./scripts/health-check.sh dev              # Infrastructure health check
 ./scripts/switch-environment.sh staging    # Environment switching utility
 ./scripts/import-existing-resources.sh dev # Import existing AWS resources
+./scripts/compare-backends.sh              # Compare backend configs across environments
 
 # 🆕 New Developer Experience Features
 make validate-all ENV=staging  # Comprehensive validation before deployment

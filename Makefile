@@ -296,6 +296,10 @@ validate-backend: ## Validate backend configuration exists and is accessible
 		exit 1; \
 	fi
 
+compare-backends: ## Compare backend configurations across all environments
+	@echo "$(BLUE)Comparing backend configurations...$(RESET)"
+	@./scripts/compare-backends.sh
+
 validate-config: ## Validate Terraform configuration files
 	@echo "$(BLUE)Validating Terraform configuration...$(RESET)"
 	@cd $(TERRAFORM_DIR) && terraform fmt -check=true -diff=true
