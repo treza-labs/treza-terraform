@@ -52,9 +52,30 @@ cd treza-terraform
 cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 ```
 
-### 2. Configure Backend
+### 2. Configure and Create Backend
 
-Create a backend configuration file:
+The backend infrastructure (S3 bucket and DynamoDB table) can be created using our enhanced script:
+
+```bash
+# Preview what will be created (dry-run mode)
+./scripts/create-backend.sh dev --dry-run
+
+# Create backend resources for development
+./scripts/create-backend.sh dev
+
+# Create backend resources for production
+./scripts/create-backend.sh prod
+```
+
+The script automatically:
+- Creates S3 bucket with versioning and encryption enabled
+- Blocks public access to the bucket
+- Creates DynamoDB table for state locking
+- Applies appropriate tags
+- Shows cost estimation
+- Provides detailed resource summary
+
+Alternatively, manually create a backend configuration file:
 
 ```bash
 # terraform/backend.conf
@@ -331,6 +352,8 @@ make health-check ENV=dev   # Check infrastructure health
 make clean                  # Clean temporary files
 
 # 🆕 Additional utility scripts
+./scripts/create-backend.sh dev --dry-run  # Preview backend creation (no changes)
+./scripts/create-backend.sh prod           # Create backend infrastructure
 ./scripts/health-check.sh dev              # Infrastructure health check
 ./scripts/switch-environment.sh staging    # Environment switching utility
 ./scripts/import-existing-resources.sh dev # Import existing AWS resources
