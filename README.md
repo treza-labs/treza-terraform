@@ -245,6 +245,37 @@ Access the dashboard at: `https://console.aws.amazon.com/cloudwatch/home?region=
 - **🆕 Shared Security Groups**: Consistent security policies across all enclaves
 - **🆕 Automated Access**: No manual security group management required
 
+## 🗑️ Infrastructure Teardown
+
+The enhanced destroy script provides safe infrastructure destruction with comprehensive visibility:
+
+```bash
+# Preview what would be destroyed (recommended first step)
+./scripts/destroy.sh dev --dry-run
+
+# See resource inventory and cost savings
+# No actual changes are made
+
+# Actually destroy infrastructure
+./scripts/destroy.sh dev
+```
+
+### Destroy Script Features:
+
+- **🔍 Dry-Run Mode**: Preview destruction without making changes
+- **📊 Resource Inventory**: See exactly what will be destroyed
+- **💰 Cost Savings**: Estimated monthly savings after destruction
+- **🔒 Safety Confirmations**: Multi-step confirmation for production
+- **📋 Detailed Summary**: Resource breakdown by type
+- **⚠️ Extra Protection**: Production requires additional confirmation
+
+### Before Destroying:
+
+1. **Backup Critical Data**: Export any important configurations
+2. **Review Resources**: Use dry-run to see what will be destroyed
+3. **Confirm Environment**: Double-check you're targeting the right environment
+4. **Consider Costs**: Review estimated savings vs. rebuild time
+
 ## 🚨 Troubleshooting
 
 ### 🆕 Common Issues and Solutions
@@ -354,6 +385,8 @@ make clean                  # Clean temporary files
 # 🆕 Additional utility scripts
 ./scripts/create-backend.sh dev --dry-run  # Preview backend creation (no changes)
 ./scripts/create-backend.sh prod           # Create backend infrastructure
+./scripts/destroy.sh dev --dry-run         # Preview infrastructure destruction (safe)
+./scripts/destroy.sh staging               # Destroy staging infrastructure
 ./scripts/health-check.sh dev              # Infrastructure health check
 ./scripts/switch-environment.sh staging    # Environment switching utility
 ./scripts/import-existing-resources.sh dev # Import existing AWS resources
