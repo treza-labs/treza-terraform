@@ -1,19 +1,62 @@
 #!/bin/bash
 set -euo pipefail
 
-# Log viewer script for Treza infrastructure
+# Enhanced log viewer script for Treza infrastructure
 # Usage: ./view-logs.sh [environment] [component] [options]
 
-# Check for help first
-if [[ "${1:-}" =~ ^(-h|--help|help)$ ]]; then
-    ENVIRONMENT="dev"
-    COMPONENT="help"
-    TAIL_LINES=50
-else
-    ENVIRONMENT=${1:-dev}
-    COMPONENT=${2:-menu}
-    TAIL_LINES=${3:-50}
-fi
+# Default values
+ENVIRONMENT=""
+COMPONENT="menu"
+TAIL_LINES=50
+FOLLOW=false
+FILTER_PATTERN=""
+TIME_RANGE="1h"
+EXPORT_FILE=""
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help|help)
+            ENVIRONMENT="dev"
+            COMPONENT="help"
+            shift
+            ;;
+        -f|--follow)
+            FOLLOW=true
+            shift
+            ;;
+        --filter)
+            FILTER_PATTERN="$2"
+            shift 2
+            ;;
+        --since)
+            TIME_RANGE="$2"
+            shift 2
+            ;;
+        --export)
+            EXPORT_FILE="$2"
+            shift 2
+            ;;
+        --lines)
+            TAIL_LINES="$2"
+            shift 2
+            ;;
+        *)
+            if [ -z "$ENVIRONMENT" ]; then
+                ENVIRONMENT=$1
+            elif [ "$COMPONENT" = "menu" ]; then
+                COMPONENT=$1
+            else
+                TAIL_LINES=$1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Set defaults if not provided
+ENVIRONMENT=${ENVIRONMENT:-dev}
+COMPONENT=${COMPONENT:-menu}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -50,14 +93,16 @@ highlight() {
 
 # Show usage
 show_usage() {
-    echo -e "${CYAN}📋 Treza Infrastructure Log Viewer${NC}"
+    echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║       📋 Treza Infrastructure Log Viewer                  ║${NC}"
+    echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo "Usage: $0 [environment] [component] [lines]"
+    echo "Usage: $0 [environment] [component] [options]"
     echo ""
-    echo "Environments:"
+    echo -e "${PURPLE}Environments:${NC}"
     echo "  dev, staging, prod (default: dev)"
     echo ""
-    echo "Components:"
+    echo -e "${PURPLE}Components:${NC}"
     echo "  menu           - Interactive menu (default)"
     echo "  all            - View all logs"
     echo "  lambda-trigger - Enclave trigger Lambda logs"
@@ -68,15 +113,39 @@ show_usage() {
     echo "  step-deploy    - Deployment Step Function logs"
     echo "  step-cleanup   - Cleanup Step Function logs"
     echo ""
-    echo "Options:"
-    echo "  lines          - Number of lines to show (default: 50)"
+    echo -e "${PURPLE}Options:${NC}"
+    echo "  -f, --follow           Follow logs in real-time (tail -f style)"
+    echo "  --filter PATTERN       Filter logs by pattern (e.g., 'ERROR', 'WARNING')"
+    echo "  --since TIME          Time range (e.g., '1h', '30m', '2d') (default: 1h)"
+    echo "  --lines N             Number of lines to show (default: 50)"
+    echo "  --export FILE         Export logs to a file"
+    echo "  -h, --help            Show this help message"
     echo ""
-    echo "Examples:"
-    echo "  $0                              # Interactive menu for dev"
-    echo "  $0 staging                      # Interactive menu for staging"
-    echo "  $0 prod lambda-trigger          # View trigger Lambda logs in prod"
-    echo "  $0 dev ecs-runner 100           # View last 100 lines of ECS logs"
-    echo "  $0 staging all                  # View all logs for staging"
+    echo -e "${PURPLE}Examples:${NC}"
+    echo ""
+    echo "  ${CYAN}# Interactive menu${NC}"
+    echo "  $0"
+    echo "  $0 staging"
+    echo ""
+    echo "  ${CYAN}# View specific component${NC}"
+    echo "  $0 prod lambda-trigger"
+    echo "  $0 dev ecs-runner --lines 100"
+    echo ""
+    echo "  ${CYAN}# Follow logs in real-time${NC}"
+    echo "  $0 dev lambda-trigger --follow"
+    echo "  $0 prod ecs-runner -f"
+    echo ""
+    echo "  ${CYAN}# Filter and search${NC}"
+    echo "  $0 dev all --filter ERROR"
+    echo "  $0 prod lambda-error --filter 'stack trace'"
+    echo ""
+    echo "  ${CYAN}# Time range selection${NC}"
+    echo "  $0 dev ecs-runner --since 30m"
+    echo "  $0 prod all --since 2h"
+    echo ""
+    echo "  ${CYAN}# Export logs${NC}"
+    echo "  $0 dev all --export dev-logs-\$(date +%Y%m%d).txt"
+    echo "  $0 prod lambda-trigger --since 1d --export prod-trigger.log"
     echo ""
 }
 
@@ -146,6 +215,18 @@ view_logs() {
     
     if aws logs describe-log-groups --log-group-name-prefix "$log_group" 2>/dev/null | grep -q "$log_group"; then
         success "Log group exists: $log_group"
+        
+        # Show active options
+        if [ "$FOLLOW" = true ]; then
+            info "Mode: Follow (real-time, press Ctrl+C to stop)"
+        fi
+        if [ -n "$FILTER_PATTERN" ]; then
+            info "Filter: '$FILTER_PATTERN'"
+        fi
+        if [ -n "$EXPORT_FILE" ]; then
+            info "Exporting to: $EXPORT_FILE"
+        fi
+        info "Time range: $TIME_RANGE"
         echo ""
         
         # Get the latest log stream
@@ -161,16 +242,65 @@ view_logs() {
             info "Latest log stream: $LATEST_STREAM"
             echo ""
             
-            # Fetch and display logs
-            aws logs tail "$log_group" --since 1h --format short --filter-pattern "" | tail -n "$TAIL_LINES" || {
-                warning "Could not tail logs, trying alternative method..."
-                aws logs get-log-events \
-                    --log-group-name "$log_group" \
-                    --log-stream-name "$LATEST_STREAM" \
-                    --limit "$TAIL_LINES" \
-                    --query 'events[*].message' \
-                    --output text 2>/dev/null || echo "No recent logs available"
-            }
+            # Build the filter pattern for AWS CloudWatch Logs
+            local aws_filter_pattern=""
+            if [ -n "$FILTER_PATTERN" ]; then
+                aws_filter_pattern="--filter-pattern \"$FILTER_PATTERN\""
+            fi
+            
+            # Fetch and display logs based on mode
+            if [ "$FOLLOW" = true ]; then
+                # Follow mode - real-time log streaming
+                info "📡 Streaming logs in real-time... (Ctrl+C to stop)"
+                echo ""
+                
+                if [ -n "$aws_filter_pattern" ]; then
+                    eval "aws logs tail \"$log_group\" --follow --since \"$TIME_RANGE\" --format short $aws_filter_pattern" || {
+                        error "Failed to follow logs with filter"
+                    }
+                else
+                    aws logs tail "$log_group" --follow --since "$TIME_RANGE" --format short || {
+                        error "Failed to follow logs"
+                    }
+                fi
+            elif [ -n "$EXPORT_FILE" ]; then
+                # Export mode - save logs to file
+                info "📥 Exporting logs to: $EXPORT_FILE"
+                
+                if [ -n "$aws_filter_pattern" ]; then
+                    eval "aws logs tail \"$log_group\" --since \"$TIME_RANGE\" --format short $aws_filter_pattern" > "$EXPORT_FILE" 2>&1 || {
+                        error "Failed to export logs"
+                        return 1
+                    }
+                else
+                    aws logs tail "$log_group" --since "$TIME_RANGE" --format short > "$EXPORT_FILE" 2>&1 || {
+                        error "Failed to export logs"
+                        return 1
+                    }
+                fi
+                
+                local line_count=$(wc -l < "$EXPORT_FILE" | tr -d ' ')
+                local file_size=$(ls -lh "$EXPORT_FILE" | awk '{print $5}')
+                success "Exported $line_count lines ($file_size) to $EXPORT_FILE"
+            else
+                # Standard view mode
+                if [ -n "$aws_filter_pattern" ]; then
+                    eval "aws logs tail \"$log_group\" --since \"$TIME_RANGE\" --format short $aws_filter_pattern | tail -n \"$TAIL_LINES\"" || {
+                        warning "Could not tail logs with filter, trying without filter..."
+                        aws logs tail "$log_group" --since "$TIME_RANGE" --format short | grep -i "$FILTER_PATTERN" | tail -n "$TAIL_LINES" || echo "No matching logs found"
+                    }
+                else
+                    aws logs tail "$log_group" --since "$TIME_RANGE" --format short | tail -n "$TAIL_LINES" || {
+                        warning "Could not tail logs, trying alternative method..."
+                        aws logs get-log-events \
+                            --log-group-name "$log_group" \
+                            --log-stream-name "$LATEST_STREAM" \
+                            --limit "$TAIL_LINES" \
+                            --query 'events[*].message' \
+                            --output text 2>/dev/null || echo "No recent logs available"
+                    }
+                fi
+            fi
         else
             error "No log streams found in this log group"
         fi
@@ -223,8 +353,15 @@ show_menu() {
     echo -e "${CYAN}║         Treza Infrastructure Log Viewer                   ║${NC}"
     echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  Environment: ${GREEN}${ENVIRONMENT}${NC}"
-    echo -e "  Lines to show: ${YELLOW}${TAIL_LINES}${NC}"
+    echo -e "  ${PURPLE}Environment:${NC} ${GREEN}${ENVIRONMENT}${NC}"
+    echo -e "  ${PURPLE}Time Range:${NC}  ${YELLOW}${TIME_RANGE}${NC}"
+    echo -e "  ${PURPLE}Lines:${NC}       ${YELLOW}${TAIL_LINES}${NC}"
+    if [ "$FOLLOW" = true ]; then
+        echo -e "  ${PURPLE}Follow Mode:${NC} ${GREEN}ON${NC}"
+    fi
+    if [ -n "$FILTER_PATTERN" ]; then
+        echo -e "  ${PURPLE}Filter:${NC}      ${YELLOW}${FILTER_PATTERN}${NC}"
+    fi
     echo ""
     echo -e "${PURPLE}Select a component to view logs:${NC}"
     echo ""
@@ -238,10 +375,15 @@ show_menu() {
     echo ""
     echo "  8) View ALL logs"
     echo ""
-    echo "  9) Change environment"
+    echo -e "${PURPLE}Options:${NC}"
+    echo "  e) Change environment"
+    echo "  t) Change time range"
+    echo "  f) Toggle follow mode"
+    echo "  s) Set filter pattern"
+    echo "  x) Export logs to file"
     echo "  0) Exit"
     echo ""
-    echo -n "Enter choice [0-9]: "
+    echo -n "Enter choice: "
 }
 
 # Interactive mode
@@ -283,7 +425,7 @@ interactive_mode() {
                 view_all_logs
                 read -p "Press Enter to continue..."
                 ;;
-            9)
+            e|E)
                 echo ""
                 echo "Current environment: $ENVIRONMENT"
                 echo -n "Enter new environment (dev/staging/prod): "
@@ -295,6 +437,71 @@ interactive_mode() {
                     error "Invalid environment"
                 fi
                 sleep 1
+                ;;
+            t|T)
+                echo ""
+                echo "Current time range: $TIME_RANGE"
+                echo "Examples: 30m, 1h, 2h, 1d, 7d"
+                echo -n "Enter new time range: "
+                read -r new_time
+                if [ -n "$new_time" ]; then
+                    TIME_RANGE=$new_time
+                    success "Time range changed to: $TIME_RANGE"
+                else
+                    error "Invalid time range"
+                fi
+                sleep 1
+                ;;
+            f|F)
+                if [ "$FOLLOW" = true ]; then
+                    FOLLOW=false
+                    success "Follow mode disabled"
+                else
+                    FOLLOW=true
+                    success "Follow mode enabled"
+                fi
+                sleep 1
+                ;;
+            s|S)
+                echo ""
+                echo "Current filter: ${FILTER_PATTERN:-none}"
+                echo "Enter filter pattern (e.g., 'ERROR', 'WARNING', leave empty to clear):"
+                echo -n "Filter: "
+                read -r new_filter
+                FILTER_PATTERN=$new_filter
+                if [ -n "$FILTER_PATTERN" ]; then
+                    success "Filter set to: $FILTER_PATTERN"
+                else
+                    success "Filter cleared"
+                fi
+                sleep 1
+                ;;
+            x|X)
+                echo ""
+                echo "Enter filename for export (e.g., logs-\$(date +%Y%m%d).txt):"
+                echo -n "Filename: "
+                read -r export_name
+                if [ -n "$export_name" ]; then
+                    EXPORT_FILE=$export_name
+                    success "Will export to: $EXPORT_FILE"
+                    echo ""
+                    echo "Select component to export (1-8), or 0 to cancel:"
+                    read -p "Choice: " export_choice
+                    case $export_choice in
+                        1) view_logs "$(get_log_group lambda-trigger)" "Lambda - Enclave Trigger" ;;
+                        2) view_logs "$(get_log_group lambda-validation)" "Lambda - Validation" ;;
+                        3) view_logs "$(get_log_group lambda-error)" "Lambda - Error Handler" ;;
+                        4) view_logs "$(get_log_group lambda-status)" "Lambda - Status Monitor" ;;
+                        5) view_logs "$(get_log_group ecs-runner)" "ECS - Terraform Runner" ;;
+                        8) view_all_logs ;;
+                        0) info "Export cancelled" ;;
+                        *) error "Invalid choice" ;;
+                    esac
+                    EXPORT_FILE=""  # Reset after export
+                else
+                    error "No filename provided"
+                fi
+                read -p "Press Enter to continue..."
                 ;;
             0)
                 echo ""

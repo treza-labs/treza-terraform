@@ -216,17 +216,54 @@ cd tests
 python -m pytest integration/
 ```
 
-## 📊 Monitoring
+## 📊 Monitoring & Logging
 
-The infrastructure includes comprehensive monitoring:
+The infrastructure includes comprehensive monitoring and advanced log viewing capabilities:
 
 - **CloudWatch Dashboard**: Real-time metrics for Step Functions and ECS
 - **Alarms**: Automatic alerts for failures and performance issues
 - **Log Insights**: Structured queries for troubleshooting
 - **🆕 Application Log Monitoring**: Automatic CloudWatch Logs setup for all enclaves
 - **🆕 Status Tracking**: Clear status progression through deployment and cleanup
+- **🆕 Advanced Log Viewer**: Enhanced log viewing with filtering, real-time following, and export
 
 Access the dashboard at: `https://console.aws.amazon.com/cloudwatch/home?region=us-west-2#dashboards:`
+
+### Enhanced Log Viewing
+
+The enhanced `view-logs.sh` script provides powerful log viewing capabilities:
+
+```bash
+# Interactive menu (easiest way)
+./scripts/view-logs.sh dev
+
+# Follow logs in real-time (like tail -f)
+./scripts/view-logs.sh dev lambda-trigger --follow
+./scripts/view-logs.sh prod ecs-runner -f
+
+# Filter logs by pattern
+./scripts/view-logs.sh dev all --filter ERROR
+./scripts/view-logs.sh prod lambda-error --filter "stack trace"
+
+# Custom time ranges
+./scripts/view-logs.sh dev ecs-runner --since 30m
+./scripts/view-logs.sh prod all --since 2h
+
+# Export logs to file
+./scripts/view-logs.sh dev all --export dev-logs-$(date +%Y%m%d).txt
+./scripts/view-logs.sh prod lambda-trigger --since 1d --export prod-trigger.log
+
+# Combine options
+./scripts/view-logs.sh dev ecs-runner --since 1h --filter ERROR --lines 100
+```
+
+**Features**:
+- 📡 **Real-time following**: Stream logs as they appear
+- 🔍 **Advanced filtering**: Search for specific patterns or error messages
+- ⏰ **Time range selection**: View logs from specific time periods (30m, 1h, 2d, etc.)
+- 💾 **Log export**: Save logs to files for analysis or archiving
+- 🎛️ **Interactive mode**: Easy-to-use menu with configurable options
+- 🎨 **Color-coded output**: Clear visual distinction for different log types
 
 ## 🔒 Security
 
