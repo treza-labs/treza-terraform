@@ -380,13 +380,29 @@ export AWS_CLI_DEBUG=1
 
 ### GitHub Actions
 
-The repository includes GitHub Actions workflows for:
+The repository includes comprehensive GitHub Actions workflows for:
 
-- **Terraform Validation**: Automatic validation on pull requests
-- **Security Scanning**: Terraform security analysis
-- **🆕 Docker Architecture Validation**: Ensure linux/amd64 builds
-- **Container Building**: Automated Docker image builds
-- **Integration Testing**: End-to-end workflow testing
+- **Terraform CI/CD** (`terraform-ci.yml`):
+  - Terraform format checking and validation
+  - Module validation across all modules
+  - Security scanning with tfsec and Checkov
+  - Code linting with TFLint and ShellCheck
+  - Docker architecture validation (linux/amd64)
+  - Python unit tests
+  - Documentation completeness checks
+  - Automated CI summary in PR comments
+
+- **Dependency Review** (`dependency-review.yml`):
+  - Automated dependency vulnerability scanning on PRs
+  - Security severity checks
+  - PR comment summaries
+
+- **Release Automation** (`release.yml`):
+  - Automatic GitHub releases on version tags
+  - Changelog extraction and formatting
+  - Release notes generation
+
+All workflows run automatically on push and pull requests to ensure code quality and security.
 
 ### Manual Deployment
 
@@ -494,4 +510,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **Created**: December 2024  
 **Status**: Production Ready  
-**Version**: 2.0.0 - **Fully Automated Lifecycle Management**
+**Version**: 2.0.0 - **Fully Automated Lifecycle Management**  
+**CI/CD**: Automated with GitHub Actions  
+**Changelog**: See [CHANGELOG.md](CHANGELOG.md) for version history
