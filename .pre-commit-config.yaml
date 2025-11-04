@@ -1,21 +1,28 @@
-# Pre-commit hooks for code quality and security
-# Install with: pip install pre-commit && pre-commit install
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
 
 repos:
+  # General hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
+        exclude: '\.md$'
       - id: end-of-file-fixer
       - id: check-yaml
-      - id: check-json
-      - id: check-merge-conflict
+        exclude: '\.github/workflows/.*\.yml$'
       - id: check-added-large-files
         args: ['--maxkb=1000']
+      - id: check-merge-conflict
       - id: detect-private-key
+      - id: detect-aws-credentials
+        args: ['--allow-missing-credentials']
+      - id: mixed-line-ending
+      - id: check-case-conflict
 
+  # Terraform formatting
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.83.5
+    rev: v1.86.0
     hooks:
       - id: terraform_fmt
       - id: terraform_validate
@@ -26,20 +33,42 @@ repos:
           - --hook-config=--create-file-if-not-exist=true
       - id: terraform_tflint
         args:
-          - --args=--only=terraform_deprecated_interpolation
-          - --args=--only=terraform_deprecated_index
-          - --args=--only=terraform_unused_declarations
-          - --args=--only=terraform_comment_syntax
-          - --args=--only=terraform_documented_outputs
-          - --args=--only=terraform_documented_variables
-          - --args=--only=terraform_typed_variables
-          - --args=--only=terraform_module_pinned_source
-          - --args=--only=terraform_naming_convention
-          - --args=--only=terraform_required_version
-          - --args=--only=terraform_required_providers
-          - --args=--only=terraform_standard_module_structure
-          - --args=--only=terraform_workspace_remote
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+      - id: terraform_tfsec
+        args:
+          - --args=--exclude-downloaded-modules
 
+  # Shell scripts
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        args: ['-x', '-e', 'SC1091']
+
+  # Python
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3.10
+        files: '^lambda/.*\.py$'
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        files: '^lambda/.*\.py$'
+        args: ['--max-line-length=100', '--extend-ignore=E203,W503']
+
+  # Commit message validation
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: []
+
+  # Security scanning
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
     hooks:
@@ -47,22 +76,10 @@ repos:
         args: ['--baseline', '.secrets.baseline']
         exclude: package.lock.json
 
-  - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.9.0.6
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
     hooks:
-      - id: shellcheck
-        args: ["-e", "SC1091"]  # Ignore sourcing files that don't exist
-
-  - repo: https://github.com/psf/black
-    rev: 23.9.1
-    hooks:
-      - id: black
-        language_version: python3
-        files: ^lambda/.*\.py$
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.1.0
-    hooks:
-      - id: flake8
-        files: ^lambda/.*\.py$
-        args: ['--max-line-length=88', '--extend-ignore=E203,W503']
+      - id: markdownlint
+        args: ['--fix']
+        exclude: 'CHANGELOG.md'

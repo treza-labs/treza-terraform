@@ -488,19 +488,48 @@ graph LR
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. **🆕 Test with shared security groups**: Ensure your changes work with the automated system
-5. Add tests for new functionality
-6. Submit a pull request
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for detailed information.
+
+### Quick Contribution Guide
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Make** your changes following our coding standards
+4. **Test** your changes thoroughly
+5. **Commit** using [Conventional Commits](https://www.conventionalcommits.org/) format
+6. **Push** to your fork (`git push origin feature/amazing-feature`)
+7. **Open** a Pull Request using our [PR template](.github/PULL_REQUEST_TEMPLATE.md)
+
+### Development Setup
+
+```bash
+# Install development tools
+make setup-dev
+
+# Install pre-commit hooks
+pre-commit install
+
+# Run validation before committing
+make validate-all ENV=dev
+```
 
 ### 🆕 Development Guidelines
 
+- Follow [CONTRIBUTING.md](CONTRIBUTING.md) guidelines
+- Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
 - Always build Docker images with `--platform linux/amd64`
 - Keep user_data scripts under 16KB when base64 encoded
 - Use shared security group `sg-0766bf09d75f2eeff` for all enclaves
 - Test both deployment and cleanup workflows
+- Run pre-commit hooks before pushing
+- Update CHANGELOG.md for notable changes
+
+### Code Quality Tools
+
+- **TFLint**: Terraform linting (`.tflint.hcl`)
+- **Pre-commit**: Automated checks before commits
+- **GitHub Actions**: CI/CD validation on every PR
+- **Security Scanning**: tfsec and Checkov integration
 
 ## 📄 License
 

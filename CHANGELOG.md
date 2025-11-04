@@ -9,7 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - CHANGELOG.md to track version history
-- GitHub Actions workflow for CI/CD automation
+- GitHub Actions workflows for CI/CD automation
+  - Comprehensive Terraform CI/CD pipeline
+  - Dependency review on pull requests
+  - Automated release generation from version tags
+- GitHub templates for better collaboration
+  - Pull request template with comprehensive checklist
+  - Bug report issue template (YAML-based)
+  - Feature request issue template (YAML-based)
+  - Issue template configuration
+- CONTRIBUTING.md with detailed contribution guidelines
+- CODEOWNERS file for automated code review assignments
+- Pre-commit hooks configuration (.pre-commit-config.yaml)
+- TFLint configuration (.tflint.hcl) for consistent Terraform linting
 
 ## [2.0.0] - 2024-12-XX
 

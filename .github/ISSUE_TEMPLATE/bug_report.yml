@@ -1,0 +1,158 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below to help us understand and reproduce the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: When I run terraform apply with environment X, I get error Y...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Which environment is affected?
+      options:
+        - Development
+        - Staging
+        - Production
+        - All environments
+        - Not environment-specific
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which component is experiencing the issue?
+      options:
+        - Terraform configuration
+        - Lambda functions
+        - Step Functions
+        - ECS/Docker
+        - Networking/VPC
+        - IAM/Security
+        - Monitoring/CloudWatch
+        - Scripts/Makefile
+        - Documentation
+        - CI/CD workflows
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior
+      placeholder: |
+        1. Run command '...'
+        2. Configure settings '...'
+        3. See error
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: The terraform apply should complete successfully and create resources...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Instead, I got an error message...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Messages / Logs
+      description: Please provide any relevant error messages or logs
+      render: shell
+      placeholder: |
+        Paste error messages or logs here...
+        
+  - type: textarea
+    id: versions
+    attributes:
+      label: Version Information
+      description: Please provide version information
+      value: |
+        - Terraform Version: 
+        - AWS CLI Version: 
+        - Project Version/Commit: 
+        - OS: 
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration (if applicable)
+      description: Relevant configuration snippets (remove sensitive data!)
+      render: hcl
+      placeholder: |
+        # Paste relevant terraform configuration here
+        
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround (if found)
+      description: If you found a temporary workaround, please describe it here
+      placeholder: I was able to work around this by...
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: How does this bug affect you?
+      options:
+        - Blocker - Cannot proceed
+        - High - Significant impact
+        - Medium - Moderate impact
+        - Low - Minor inconvenience
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have removed any sensitive information from logs and configs
+          required: true
+        - label: I have provided enough information to reproduce the issue
+          required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here (screenshots, related issues, etc.)
+

@@ -1,0 +1,12 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Discussion Forum
+    url: https://github.com/treza-labs/treza-terraform/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📚 Documentation
+    url: https://github.com/treza-labs/treza-terraform/blob/main/README.md
+    about: Read the documentation before submitting an issue
+  - name: 🔒 Security Issue
+    url: https://github.com/treza-labs/treza-terraform/security/advisories/new
+    about: Report a security vulnerability privately
+

@@ -1,0 +1,34 @@
+# Code Owners
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @treza-labs/infrastructure
+
+# Terraform configurations
+/terraform/ @treza-labs/infrastructure
+/modules/ @treza-labs/infrastructure
+
+# Lambda functions
+/lambda/ @treza-labs/backend
+
+# Docker and ECS
+/docker/ @treza-labs/infrastructure
+
+# CI/CD workflows
+/.github/workflows/ @treza-labs/devops
+
+# Scripts and automation
+/scripts/ @treza-labs/devops
+
+# Documentation
+*.md @treza-labs/documentation
+/docs/ @treza-labs/documentation
+
+# Security-sensitive files
+*.tfvars @treza-labs/security
+/modules/iam/ @treza-labs/security
+/modules/networking/ @treza-labs/security
+
+# Testing
+/tests/ @treza-labs/qa
+
