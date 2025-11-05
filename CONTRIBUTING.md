@@ -15,8 +15,9 @@ Thank you for your interest in contributing to the Treza Terraform Infrastructur
 
 ## Code of Conduct
 
-This project adheres to a code of conduct that all contributors are expected to follow:
+This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to conduct@treza-labs.com.
 
+Key principles:
 - Be respectful and inclusive
 - Welcome newcomers and help them get started
 - Focus on what is best for the community

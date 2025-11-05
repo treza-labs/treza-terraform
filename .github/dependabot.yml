@@ -1,0 +1,163 @@
+# Dependabot configuration for automated dependency updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "/"
+    reviewers:
+      - "treza-labs/devops"
+    open-pull-requests-limit: 5
+
+  # Terraform
+  - package-ecosystem: "terraform"
+    directory: "/terraform"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "terraform"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    reviewers:
+      - "treza-labs/infrastructure"
+    open-pull-requests-limit: 10
+    ignore:
+      # Ignore patch updates for terraform
+      - dependency-name: "hashicorp/terraform"
+        update-types: ["version-update:semver-patch"]
+
+  # Docker
+  - package-ecosystem: "docker"
+    directory: "/docker/terraform-runner"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    reviewers:
+      - "treza-labs/infrastructure"
+    open-pull-requests-limit: 5
+
+  # Python - Lambda validation
+  - package-ecosystem: "pip"
+    directory: "/lambda/validation"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "python"
+      - "lambda"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    reviewers:
+      - "treza-labs/backend"
+    open-pull-requests-limit: 5
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+
+  # Python - Lambda enclave trigger
+  - package-ecosystem: "pip"
+    directory: "/lambda/enclave_trigger"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "python"
+      - "lambda"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    reviewers:
+      - "treza-labs/backend"
+    open-pull-requests-limit: 5
+
+  # Python - Lambda error handler
+  - package-ecosystem: "pip"
+    directory: "/lambda/error_handler"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "python"
+      - "lambda"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    reviewers:
+      - "treza-labs/backend"
+    open-pull-requests-limit: 5
+
+  # Python - Lambda status monitor
+  - package-ecosystem: "pip"
+    directory: "/lambda/status_monitor"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "python"
+      - "lambda"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    reviewers:
+      - "treza-labs/backend"
+    open-pull-requests-limit: 5
+
+  # Python - Tests
+  - package-ecosystem: "pip"
+    directory: "/tests"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "python"
+      - "testing"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    reviewers:
+      - "treza-labs/qa"
+    open-pull-requests-limit: 5
+

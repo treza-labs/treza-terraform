@@ -1,0 +1,132 @@
+name: Cost Estimation
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - 'modules/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  infracost:
+    name: Estimate Infrastructure Cost
+    runs-on: ubuntu-latest
+    
+    env:
+      TF_ROOT: terraform
+    
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: '${{ github.event.pull_request.base.ref }}'
+      
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+      
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v2
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.6.0'
+          terraform_wrapper: false
+      
+      - name: Terraform init
+        run: |
+          cd ${{ env.TF_ROOT }}
+          terraform init -backend=false
+      
+      - name: Generate Infracost cost estimate baseline
+        run: |
+          infracost breakdown --path=${{ env.TF_ROOT }} \
+            --format=json \
+            --out-file=/tmp/infracost-base.json
+      
+      - name: Generate Infracost diff
+        run: |
+          infracost diff --path=${{ env.TF_ROOT }} \
+            --format=json \
+            --compare-to=/tmp/infracost-base.json \
+            --out-file=/tmp/infracost.json
+      
+      - name: Post Infracost comment
+        if: always()
+        run: |
+          infracost comment github --path=/tmp/infracost.json \
+            --repo=$GITHUB_REPOSITORY \
+            --github-token=${{ github.token }} \
+            --pull-request=${{ github.event.pull_request.number }} \
+            --behavior=update
+      
+      - name: Generate cost summary
+        if: always()
+        run: |
+          echo "## 💰 Infrastructure Cost Estimation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          infracost output --path=/tmp/infracost.json --format=github-comment >> $GITHUB_STEP_SUMMARY || echo "Cost estimation not available" >> $GITHUB_STEP_SUMMARY
+  
+  manual-estimation:
+    name: Manual Cost Notes
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Analyze resource changes
+        id: analyze
+        run: |
+          echo "## 📊 Resource Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Key Cost Considerations" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for expensive resources
+          if git diff origin/${{ github.event.pull_request.base.ref }}...HEAD -- '*.tf' | grep -i "aws_instance\|aws_rds\|aws_elasticache\|aws_eks"; then
+            echo "⚠️ **High-cost resources detected:**" >> $GITHUB_STEP_SUMMARY
+            echo "- EC2 instances, RDS databases, ElastiCache, or EKS clusters" >> $GITHUB_STEP_SUMMARY
+            echo "- Please review instance types and sizes carefully" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check for data transfer resources
+          if git diff origin/${{ github.event.pull_request.base.ref }}...HEAD -- '*.tf' | grep -i "nat_gateway\|vpc_endpoint"; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "💡 **Data transfer considerations:**" >> $GITHUB_STEP_SUMMARY
+            echo "- NAT Gateways and VPC Endpoints affect data transfer costs" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check for storage resources
+          if git diff origin/${{ github.event.pull_request.base.ref }}...HEAD -- '*.tf' | grep -i "aws_s3\|aws_ebs\|aws_efs"; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "💾 **Storage considerations:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Review storage sizes and retention policies" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Cost Optimization Tips" >> $GITHUB_STEP_SUMMARY
+          echo "- Use Spot instances for non-critical workloads" >> $GITHUB_STEP_SUMMARY
+          echo "- Enable S3 lifecycle policies" >> $GITHUB_STEP_SUMMARY
+          echo "- Review CloudWatch log retention periods" >> $GITHUB_STEP_SUMMARY
+          echo "- Consider Reserved Instances for stable workloads" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Comment reminder on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '💰 **Cost Impact Review Required**\n\nPlease review the cost estimation in the PR checks and update the PR description with the estimated monthly cost impact.'
+            })
+

@@ -1,0 +1,121 @@
+name: Terraform Documentation
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - 'modules/**'
+  push:
+    branches: [main]
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - 'modules/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  docs:
+    name: Generate Terraform Docs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup terraform-docs
+        uses: terraform-docs/gh-actions@v1.0.0
+        with:
+          working-dir: .
+          output-file: TERRAFORM_DOCS.md
+          output-method: inject
+          git-push: false
+      
+      - name: Generate docs for main terraform directory
+        run: |
+          docker run --rm \
+            -v $(pwd):/workspace \
+            quay.io/terraform-docs/terraform-docs:latest \
+            markdown table \
+            --output-file README.md \
+            --output-mode inject \
+            /workspace/terraform
+      
+      - name: Generate docs for modules
+        run: |
+          for module_dir in modules/*/; do
+            if [ -f "${module_dir}main.tf" ]; then
+              echo "Generating docs for ${module_dir}"
+              docker run --rm \
+                -v $(pwd):/workspace \
+                quay.io/terraform-docs/terraform-docs:latest \
+                markdown table \
+                --output-file README.md \
+                --output-mode inject \
+                /workspace/${module_dir}
+            fi
+          done
+      
+      - name: Check for documentation changes
+        id: docs_changes
+        run: |
+          if git diff --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No documentation changes detected"
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Documentation changes detected"
+            git diff --name-only
+          fi
+      
+      - name: Commit and push if changed (PR)
+        if: github.event_name == 'pull_request' && steps.docs_changes.outputs.changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "docs: auto-generate Terraform documentation [skip ci]"
+          git push
+      
+      - name: Commit and push if changed (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.docs_changes.outputs.changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "docs: auto-generate Terraform documentation [skip ci]"
+          git push
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && steps.docs_changes.outputs.changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '📝 Terraform documentation has been automatically updated based on your changes.'
+            })
+      
+      - name: Summary
+        run: |
+          echo "## Terraform Documentation Update" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.docs_changes.outputs.changes }}" == "true" ]; then
+            echo "✅ Documentation updated successfully" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Changed Files" >> $GITHUB_STEP_SUMMARY
+            git diff --name-only HEAD~1 | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ No documentation changes needed" >> $GITHUB_STEP_SUMMARY
+          fi
+

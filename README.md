@@ -267,6 +267,8 @@ The enhanced `view-logs.sh` script provides powerful log viewing capabilities:
 
 ## 🔒 Security
 
+**See [SECURITY.md](SECURITY.md) for our complete security policy and vulnerability reporting process.**
+
 ### 🆕 Enhanced IAM Principles
 
 - **Least Privilege**: Each component has minimal required permissions
@@ -274,6 +276,8 @@ The enhanced `view-logs.sh` script provides powerful log viewing capabilities:
 - **Audit Trail**: All actions logged to CloudWatch
 - **🆕 Shared Security Groups**: Centralized security management
 - **🆕 VPC Endpoint Security**: Automatic secure access to AWS services
+- **🆕 Automated Dependency Updates**: Dependabot monitors for vulnerabilities
+- **🆕 Security Scanning**: Continuous tfsec and Checkov analysis
 
 ### 🆕 Network Security Improvements
 
@@ -402,7 +406,17 @@ The repository includes comprehensive GitHub Actions workflows for:
   - Changelog extraction and formatting
   - Release notes generation
 
-All workflows run automatically on push and pull requests to ensure code quality and security.
+- **Terraform Documentation** (`terraform-docs.yml`):
+  - Auto-generate documentation for modules
+  - Keep README.md in sync with code changes
+  - Automatic PR updates
+
+- **Cost Estimation** (`cost-estimation.yml`):
+  - Infrastructure cost analysis on PRs
+  - Resource change impact assessment
+  - Cost optimization recommendations
+
+All workflows run automatically on push and pull requests to ensure code quality, security, and cost awareness.
 
 ### Manual Deployment
 
@@ -488,7 +502,10 @@ graph LR
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for detailed information.
+We welcome contributions! Please read:
+- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Our community standards
+- [Security Policy](SECURITY.md) - How to report vulnerabilities
 
 ### Quick Contribution Guide
 

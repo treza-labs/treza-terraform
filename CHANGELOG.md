@@ -13,15 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive Terraform CI/CD pipeline
   - Dependency review on pull requests
   - Automated release generation from version tags
+  - Automated Terraform documentation generation
+  - Infrastructure cost estimation on PRs
 - GitHub templates for better collaboration
   - Pull request template with comprehensive checklist
   - Bug report issue template (YAML-based)
   - Feature request issue template (YAML-based)
   - Issue template configuration
-- CONTRIBUTING.md with detailed contribution guidelines
-- CODEOWNERS file for automated code review assignments
-- Pre-commit hooks configuration (.pre-commit-config.yaml)
-- TFLint configuration (.tflint.hcl) for consistent Terraform linting
+- Security and dependency management
+  - SECURITY.md with vulnerability reporting process
+  - Dependabot configuration for automated dependency updates
+  - Security scanning in CI/CD pipelines
+- Community governance
+  - CONTRIBUTING.md with detailed contribution guidelines
+  - CODE_OF_CONDUCT.md following Contributor Covenant 2.1
+  - CODEOWNERS file for automated code review assignments
+- Code quality tools
+  - Pre-commit hooks configuration (.pre-commit-config.yaml)
+  - TFLint configuration (.tflint.hcl) for consistent Terraform linting
+  - Secret detection with detect-secrets
 
 ## [2.0.0] - 2024-12-XX
 
