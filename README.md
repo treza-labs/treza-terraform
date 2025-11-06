@@ -416,6 +416,11 @@ The repository includes comprehensive GitHub Actions workflows for:
   - Resource change impact assessment
   - Cost optimization recommendations
 
+- **Version Management** (`auto-tag.yml`, `validate-version.yml`):
+  - Automated version tagging from CHANGELOG
+  - Version format validation on PRs
+  - Manual version tagging via workflow dispatch
+
 All workflows run automatically on push and pull requests to ensure code quality, security, and cost awareness.
 
 ### Manual Deployment
@@ -547,6 +552,30 @@ make validate-all ENV=dev
 - **Pre-commit**: Automated checks before commits
 - **GitHub Actions**: CI/CD validation on every PR
 - **Security Scanning**: tfsec and Checkov integration
+- **Version Management**: Automated semantic versioning (`./scripts/version.sh`)
+
+### Release Management
+
+Create new releases easily:
+
+```bash
+# Check current version
+./scripts/version.sh current
+
+# Bump version (updates CHANGELOG.md)
+./scripts/version.sh bump patch   # 2.0.0 -> 2.0.1
+./scripts/version.sh bump minor   # 2.0.0 -> 2.1.0
+./scripts/version.sh bump major   # 2.0.0 -> 3.0.0
+
+# Commit changes and push
+git add CHANGELOG.md
+git commit -m "chore: prepare release v2.1.0"
+git push
+
+# Tag is created automatically via GitHub Actions
+# Or manually create tag:
+./scripts/version.sh tag
+```
 
 ## 📄 License
 

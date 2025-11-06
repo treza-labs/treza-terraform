@@ -1,0 +1,114 @@
+name: Validate Version
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'CHANGELOG.md'
+
+jobs:
+  validate-version:
+    name: Validate Version in CHANGELOG
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check CHANGELOG format
+        run: |
+          echo "## Validating CHANGELOG.md" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check if CHANGELOG exists
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "❌ CHANGELOG.md not found" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          
+          # Check for Unreleased section
+          if ! grep -q "## \[Unreleased\]" CHANGELOG.md; then
+            echo "⚠️ **Warning**: No [Unreleased] section found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ [Unreleased] section present" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check for version format
+          VERSIONS=$(grep -oP '(?<=## \[)[0-9]+\.[0-9]+\.[0-9]+(?=\])' CHANGELOG.md || true)
+          
+          if [ -z "$VERSIONS" ]; then
+            echo "⚠️ **Warning**: No valid version numbers found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Found Versions:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "$VERSIONS" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            
+            # Get latest version
+            LATEST_VERSION=$(echo "$VERSIONS" | head -1)
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "📦 **Latest Version**: $LATEST_VERSION" >> $GITHUB_STEP_SUMMARY
+            
+            # Check if tag exists
+            if git ls-remote --tags origin | grep -q "refs/tags/v$LATEST_VERSION"; then
+              echo "🏷️  Tag v$LATEST_VERSION already exists in remote" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "📌 Tag v$LATEST_VERSION not yet created" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          # Check for proper format
+          if grep -q "## \[Unreleased\]" CHANGELOG.md; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Unreleased Changes:" >> $GITHUB_STEP_SUMMARY
+            
+            # Extract unreleased section
+            UNRELEASED=$(awk '/## \[Unreleased\]/,/## \[[0-9]/' CHANGELOG.md | head -n -1 || true)
+            
+            if echo "$UNRELEASED" | grep -qE "### (Added|Changed|Fixed|Deprecated|Removed|Security)"; then
+              echo "✅ Properly categorized changes found" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ Consider categorizing changes (Added, Changed, Fixed, etc.)" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+      
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+            
+            // Extract unreleased section
+            const unreleasedMatch = changelog.match(/## \[Unreleased\]([\s\S]*?)(?=## \[|$)/);
+            
+            if (unreleasedMatch) {
+              const unreleased = unreleasedMatch[1].trim();
+              
+              if (unreleased.length > 0) {
+                const comment = `## 📝 CHANGELOG Update Detected
+                
+**Unreleased Changes:**
+
+${unreleased}
+
+---
+💡 **Tip**: When ready to release, run:
+\`\`\`bash
+./scripts/version.sh bump patch  # or minor/major
+git add CHANGELOG.md
+git commit -m "chore: prepare release v2.x.x"
+git push
+\`\`\`
+Then merge the PR and the tag will be created automatically.`;
+                
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+                });
+              }
+            }
+

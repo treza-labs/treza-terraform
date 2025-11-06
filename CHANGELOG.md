@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automated release generation from version tags
   - Automated Terraform documentation generation
   - Infrastructure cost estimation on PRs
+  - Automated version tagging workflow
+  - Version validation on pull requests
 - GitHub templates for better collaboration
   - Pull request template with comprehensive checklist
   - Bug report issue template (YAML-based)
@@ -32,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Pre-commit hooks configuration (.pre-commit-config.yaml)
   - TFLint configuration (.tflint.hcl) for consistent Terraform linting
   - Secret detection with detect-secrets
+- Version management
+  - Automated version tagging from CHANGELOG updates
+  - Version management script (scripts/version.sh)
+  - Semantic version validation
 
 ## [2.0.0] - 2024-12-XX
 

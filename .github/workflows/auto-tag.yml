@@ -1,0 +1,114 @@
+name: Auto Tag
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'CHANGELOG.md'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to tag (e.g., 2.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  auto-tag:
+    name: Create Version Tag
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Extract version from CHANGELOG
+        id: extract_version
+        run: |
+          # Look for version in format ## [X.Y.Z] in CHANGELOG.md
+          VERSION=$(grep -m 1 -oP '(?<=## \[)[0-9]+\.[0-9]+\.[0-9]+(?=\])' CHANGELOG.md || echo "")
+          
+          if [ -z "$VERSION" ]; then
+            echo "No version found in CHANGELOG.md"
+            echo "version=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Found version: $VERSION"
+      
+      - name: Check if tag exists
+        id: check_tag
+        if: steps.extract_version.outputs.version != ''
+        run: |
+          VERSION=${{ steps.extract_version.outputs.version }}
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag v$VERSION already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Tag v$VERSION does not exist"
+          fi
+      
+      - name: Create and push tag
+        if: steps.extract_version.outputs.version != '' && steps.check_tag.outputs.exists == 'false'
+        run: |
+          VERSION=${{ steps.extract_version.outputs.version }}
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -a "v$VERSION" -m "Release version $VERSION"
+          git push origin "v$VERSION"
+          echo "✅ Created and pushed tag v$VERSION"
+  
+  manual-tag:
+    name: Create Manual Tag
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Validate version format
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Version must be in format X.Y.Z (e.g., 2.1.0)"
+            exit 1
+          fi
+          echo "Version format valid: $VERSION"
+      
+      - name: Check if tag exists
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "Error: Tag v$VERSION already exists"
+            exit 1
+          fi
+      
+      - name: Create and push tag
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -a "v$VERSION" -m "Release version $VERSION"
+          git push origin "v$VERSION"
+          echo "✅ Created and pushed tag v$VERSION"
+      
+      - name: Summary
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "## 🏷️ Version Tag Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: v$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This will trigger the release workflow to create a GitHub release." >> $GITHUB_STEP_SUMMARY
+
