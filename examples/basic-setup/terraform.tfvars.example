@@ -1,0 +1,40 @@
+# Basic Setup Example Configuration
+# Copy this file to terraform.tfvars and customize for your environment
+
+# AWS Region and Environment
+aws_region   = "us-west-2"
+environment  = "dev"
+project_name = "treza"
+
+# Existing DynamoDB Table from treza-app
+# This table must exist before deploying this infrastructure
+existing_dynamodb_table_name = "treza-enclaves-dev"
+
+# Networking Configuration
+vpc_cidr = "10.0.0.0/16"
+availability_zones = [
+  "us-west-2a",
+  "us-west-2b"
+]
+
+# ECS Configuration - Minimal for development
+terraform_runner_cpu    = 512   # 0.5 vCPU
+terraform_runner_memory = 1024  # 1 GB
+
+# Workflow Timeouts
+deployment_timeout_seconds = 1200  # 20 minutes
+destroy_timeout_seconds    = 900   # 15 minutes
+
+# Logging - Short retention for cost savings
+log_retention_days = 7
+
+# Optional: Custom Tags
+additional_tags = {
+  ManagedBy   = "Terraform"
+  Environment = "Development"
+  CostCenter  = "Engineering"
+}
+
+# Optional: Enable detailed monitoring (increases costs slightly)
+# enable_detailed_monitoring = true
+

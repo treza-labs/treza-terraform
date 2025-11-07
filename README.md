@@ -1,5 +1,13 @@
 # Treza Terraform Infrastructure
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.6.0-623CE4?logo=terraform)](https://www.terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-Nitro%20Enclaves-FF9900?logo=amazon-aws)](https://aws.amazon.com/ec2/nitro/nitro-enclaves/)
+[![CI/CD](https://img.shields.io/github/actions/workflow/status/treza-labs/treza-terraform/terraform-ci.yml?branch=main&label=CI%2FCD)](https://github.com/treza-labs/treza-terraform/actions)
+[![Security](https://img.shields.io/badge/Security-tfsec%20%7C%20Checkov-blue)](./SECURITY.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+[![Code of Conduct](https://img.shields.io/badge/Code%20of%20Conduct-Contributor%20Covenant-purple)](./CODE_OF_CONDUCT.md)
+
 A comprehensive Terraform infrastructure for deploying AWS Nitro Enclaves using an event-driven architecture with DynamoDB Streams, Step Functions, and ECS. **Now featuring fully automated shared security group management and optimized user data handling.**
 
 ## 🏗️ Architecture Overview
@@ -42,7 +50,25 @@ make setup-dev
 
 ## 🚀 Quick Start
 
-### 1. Clone and Configure
+### Option 1: Using Examples (Recommended)
+
+We provide ready-to-use examples for different scenarios:
+
+```bash
+# Basic development setup (~$50/month)
+cd examples/basic-setup
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars and deploy
+
+# Production-ready setup (~$200-300/month)
+cd examples/production-ready
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars and deploy
+```
+
+See the [examples directory](./examples/) for detailed guides and more options.
+
+### Option 2: Manual Configuration
 
 ```bash
 git clone <your-repo-url>

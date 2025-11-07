@@ -1,0 +1,55 @@
+# Production-Ready Configuration
+# This example includes high availability, enhanced security, and comprehensive monitoring
+
+# AWS Region and Environment
+aws_region   = "us-east-1"
+environment  = "prod"
+project_name = "treza"
+
+# Existing DynamoDB Table (Production)
+existing_dynamodb_table_name = "treza-enclaves-prod"
+
+# High Availability Network Configuration
+vpc_cidr = "10.2.0.0/16"
+availability_zones = [
+  "us-east-1a",
+  "us-east-1b",
+  "us-east-1c"
+]
+
+# Production-Grade ECS Configuration
+terraform_runner_cpu    = 2048  # 2 vCPU
+terraform_runner_memory = 4096  # 4 GB
+
+# Generous Timeouts for Complex Deployments
+deployment_timeout_seconds = 3600  # 60 minutes
+destroy_timeout_seconds    = 2400  # 40 minutes
+
+# Extended Log Retention for Compliance
+log_retention_days = 90
+
+# Production Tags for Governance
+additional_tags = {
+  Environment  = "Production"
+  ManagedBy    = "Terraform"
+  Project      = "Treza"
+  Compliance   = "SOC2"
+  CostCenter   = "Infrastructure"
+  Owner        = "DevOps-Team"
+  BusinessUnit = "Engineering"
+  BackupPolicy = "Daily"
+  DataClass    = "Confidential"
+}
+
+# Optional: Enable Enhanced Monitoring
+enable_detailed_monitoring = true
+
+# Optional: SNS Topic for Alerts (create separately)
+# alert_sns_topic_arn = "arn:aws:sns:us-east-1:ACCOUNT:prod-alerts"
+
+# Optional: Enable VPC Flow Logs
+# enable_vpc_flow_logs = true
+
+# Optional: KMS Key for Encryption (create separately)
+# kms_key_arn = "arn:aws:kms:us-east-1:ACCOUNT:key/KEY-ID"
+
