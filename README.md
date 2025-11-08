@@ -343,7 +343,20 @@ The enhanced destroy script provides safe infrastructure destruction with compre
 3. **Confirm Environment**: Double-check you're targeting the right environment
 4. **Consider Costs**: Review estimated savings vs. rebuild time
 
+## 📚 Documentation
+
+- **[README.md](README.md)** - Main documentation (you are here)
+- **[FAQ.md](docs/FAQ.md)** - Frequently Asked Questions
+- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Comprehensive troubleshooting guide
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
+- **[SECURITY.md](SECURITY.md)** - Security policy
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** - Community standards
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history
+- **[Examples](examples/)** - Practical deployment examples
+
 ## 🚨 Troubleshooting
+
+For detailed troubleshooting, see our **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** and **[FAQ](docs/FAQ.md)**.
 
 ### 🆕 Common Issues and Solutions
 

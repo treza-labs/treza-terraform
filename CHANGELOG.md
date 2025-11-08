@@ -45,7 +45,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Examples directory with real-world configurations
   - Basic setup example for development (~$50/month)
   - Production-ready example with HA (~$200-300/month)
+  - Multi-environment example with complete workflow (~$500/month total)
   - Detailed cost breakdowns and deployment guides
+- Comprehensive support documentation
+  - FAQ with 50+ common questions and answers
+  - Troubleshooting guide with solutions for common issues
+  - Debugging tools and techniques
+  - Cost optimization strategies
 
 ## [2.0.0] - 2024-12-XX
 
