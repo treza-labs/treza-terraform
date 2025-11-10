@@ -50,8 +50,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive support documentation
   - FAQ with 50+ common questions and answers
   - Troubleshooting guide with solutions for common issues
+  - Architecture documentation with Mermaid diagrams
+  - Quick reference guide and cheat sheet
   - Debugging tools and techniques
   - Cost optimization strategies
+- Enhanced Makefile with 15+ new commands
+  - Dependency graph generation (make graph)
+  - Cost estimation (make cost-estimate)
+  - Drift detection (make drift-detect)
+  - State management (make state-list, state-show)
+  - Resource import/taint operations
+  - Terraform console access
+  - State backup automation
+  - Version information display
 
 ## [2.0.0] - 2024-12-XX
 

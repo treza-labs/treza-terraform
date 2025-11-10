@@ -171,6 +171,112 @@ show-env: ## Show current environment status
 logs: ## View logs from infrastructure components (interactive)
 	@./scripts/view-logs.sh $(ENV)
 
+graph: ## Generate Terraform dependency graph (requires graphviz)
+	@echo "$(BLUE)Generating Terraform dependency graph...$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform graph | dot -Tsvg > terraform-graph.svg
+	@echo "$(GREEN)✅ Graph saved to terraform/terraform-graph.svg$(RESET)"
+	@echo "$(BLUE)Open with: open terraform/terraform-graph.svg$(RESET)"
+
+cost-estimate: ## Estimate infrastructure costs (requires infracost)
+	@if command -v infracost >/dev/null 2>&1; then \
+		echo "$(BLUE)Estimating infrastructure costs...$(RESET)"; \
+		cd $(TERRAFORM_DIR) && infracost breakdown --path .; \
+	else \
+		echo "$(YELLOW)infracost not installed. Install from: https://www.infracost.io/$(RESET)"; \
+	fi
+
+drift-detect: ## Detect configuration drift
+	@echo "$(BLUE)Detecting configuration drift for $(ENV)...$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform plan -detailed-exitcode -var-file=../$(ENV_FILE) || (echo "$(YELLOW)⚠️  Drift detected!$(RESET)" && exit 0)
+
+refresh: ## Refresh Terraform state
+	@echo "$(BLUE)Refreshing Terraform state for $(ENV)...$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform apply -refresh-only -var-file=../$(ENV_FILE) -auto-approve
+
+import-resource: ## Import existing AWS resource (usage: make import-resource RESOURCE=aws_vpc.main ID=vpc-123456)
+	@if [ -z "$(RESOURCE)" ] || [ -z "$(ID)" ]; then \
+		echo "$(RED)❌ Usage: make import-resource RESOURCE=aws_vpc.main ID=vpc-123456$(RESET)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Importing $(RESOURCE) with ID $(ID)...$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform import -var-file=../$(ENV_FILE) $(RESOURCE) $(ID)
+	@echo "$(GREEN)✅ Resource imported successfully$(RESET)"
+
+taint-resource: ## Mark resource for recreation (usage: make taint-resource RESOURCE=aws_instance.example)
+	@if [ -z "$(RESOURCE)" ]; then \
+		echo "$(RED)❌ Usage: make taint-resource RESOURCE=aws_instance.example$(RESET)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Marking $(RESOURCE) for recreation...$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform taint $(RESOURCE)
+	@echo "$(GREEN)✅ Resource tainted$(RESET)"
+
+state-list: ## List all resources in Terraform state
+	@echo "$(BLUE)Listing Terraform state resources...$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform state list
+
+state-show: ## Show detailed resource from state (usage: make state-show RESOURCE=aws_vpc.main)
+	@if [ -z "$(RESOURCE)" ]; then \
+		echo "$(RED)❌ Usage: make state-show RESOURCE=aws_vpc.main$(RESET)"; \
+		exit 1; \
+	fi
+	@cd $(TERRAFORM_DIR) && terraform state show $(RESOURCE)
+
+console: ## Open Terraform console for testing expressions
+	@echo "$(BLUE)Opening Terraform console (type 'exit' to quit)...$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform console -var-file=../$(ENV_FILE)
+
+output: ## Show all Terraform outputs
+	@echo "$(BLUE)Terraform outputs for $(ENV):$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform output
+
+output-json: ## Show outputs in JSON format
+	@cd $(TERRAFORM_DIR) && terraform output -json
+
+providers: ## Show provider configuration
+	@echo "$(BLUE)Provider configuration:$(RESET)"
+	@cd $(TERRAFORM_DIR) && terraform providers
+
+version-info: ## Show version information
+	@echo "$(BLUE)═══════════════════════════════════════════════════$(RESET)"
+	@echo "$(CYAN)       Version Information$(RESET)"
+	@echo "$(BLUE)═══════════════════════════════════════════════════$(RESET)"
+	@echo ""
+	@echo "$(PURPLE)Terraform:$(RESET)"
+	@terraform version
+	@echo ""
+	@echo "$(PURPLE)AWS CLI:$(RESET)"
+	@aws --version
+	@echo ""
+	@echo "$(PURPLE)Project Version:$(RESET)"
+	@./scripts/version.sh current
+	@echo ""
+	@echo "$(PURPLE)Docker:$(RESET)"
+	@docker --version || echo "$(YELLOW)Docker not installed$(RESET)"
+	@echo ""
+
+quick-deploy: validate-all plan ## Quick validation and plan (stops before apply)
+	@echo "$(GREEN)✅ Ready to deploy. Run 'make apply ENV=$(ENV)' to proceed$(RESET)"
+
+backup-state: ## Backup Terraform state file
+	@echo "$(BLUE)Backing up Terraform state...$(RESET)"
+	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
+	aws s3 cp s3://$$(grep '^bucket' $(BACKEND_CONF) | cut -d'=' -f2 | tr -d ' "')/$$(grep '^key' $(BACKEND_CONF) | cut -d'=' -f2 | tr -d ' "') \
+		terraform-state-backup-$$TIMESTAMP.json
+	@echo "$(GREEN)✅ State backed up$(RESET)"
+
+docs-gen: ## Generate module documentation (requires terraform-docs)
+	@if command -v terraform-docs >/dev/null 2>&1; then \
+		echo "$(BLUE)Generating module documentation...$(RESET)"; \
+		for module_dir in modules/*/; do \
+			echo "Documenting $$module_dir"; \
+			terraform-docs markdown table $$module_dir > $$module_dir/README.md; \
+		done; \
+		echo "$(GREEN)✅ Documentation generated$(RESET)"; \
+	else \
+		echo "$(YELLOW)terraform-docs not installed$(RESET)"; \
+	fi
+
 status: ## Show comprehensive infrastructure status
 	@echo "$(BLUE)═══════════════════════════════════════════════════════════$(RESET)"
 	@echo "$(CYAN)       Treza Infrastructure Status Dashboard$(RESET)"

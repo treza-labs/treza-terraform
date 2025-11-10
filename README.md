@@ -345,14 +345,24 @@ The enhanced destroy script provides safe infrastructure destruction with compre
 
 ## 📚 Documentation
 
+### Core Documentation
 - **[README.md](README.md)** - Main documentation (you are here)
-- **[FAQ.md](docs/FAQ.md)** - Frequently Asked Questions
-- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Comprehensive troubleshooting guide
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
-- **[SECURITY.md](SECURITY.md)** - Security policy
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** - Community standards
-- **[CHANGELOG.md](CHANGELOG.md)** - Version history
-- **[Examples](examples/)** - Practical deployment examples
+- **[QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)** - ⚡ Quick commands and cheat sheet
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - 📐 Detailed architecture diagrams
+- **[FAQ.md](docs/FAQ.md)** - ❓ Frequently Asked Questions (50+ Q&As)
+- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - 🔧 Comprehensive troubleshooting guide
+
+### Project Governance
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - 🤝 Contribution guidelines
+- **[SECURITY.md](SECURITY.md)** - 🔒 Security policy and vulnerability reporting
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** - 💜 Community standards
+- **[CHANGELOG.md](CHANGELOG.md)** - 📝 Version history and release notes
+
+### Practical Guides
+- **[Examples](examples/)** - 🚀 Ready-to-deploy configurations
+  - [Basic Setup](examples/basic-setup/) - Development (~$50/month)
+  - [Production Ready](examples/production-ready/) - High availability (~$200-300/month)
+  - [Multi-Environment](examples/multi-environment/) - Complete workflow (~$500/month)
 
 ## 🚨 Troubleshooting
 
