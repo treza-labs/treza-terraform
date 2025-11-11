@@ -91,13 +91,27 @@ lint: ## Run linting tools
 		echo "$(YELLOW)shellcheck not installed, skipping...$(RESET)"; \
 	fi
 
-test: ## Run tests
-	@echo "$(BLUE)Running tests...$(RESET)"
+test: ## Run unit tests
+	@echo "$(BLUE)Running unit tests...$(RESET)"
 	@if [ -f "tests/requirements.txt" ]; then \
-		cd tests && python -m pytest -v; \
+		cd tests && python -m pytest unit/ -v; \
 	else \
 		echo "$(YELLOW)No tests found, skipping...$(RESET)"; \
 	fi
+
+test-integration: ## Run integration tests (requires AWS credentials)
+	@echo "$(BLUE)Running integration tests for $(ENV)...$(RESET)"
+	@if [ -f "tests/requirements.txt" ]; then \
+		cd tests && ENVIRONMENT=$(ENV) python -m pytest integration/ -v --tb=short; \
+	else \
+		echo "$(YELLOW)No tests found, skipping...$(RESET)"; \
+	fi
+
+test-all: test test-integration ## Run all tests
+
+cost-alert: ## Run cost monitoring and alerts
+	@echo "$(BLUE)Checking costs for $(ENV)...$(RESET)"
+	@./scripts/cost-alert.sh -e $(ENV)
 
 build-lambda: ## Build Lambda functions
 	@echo "$(BLUE)Building Lambda functions...$(RESET)"

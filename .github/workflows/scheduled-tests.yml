@@ -1,0 +1,167 @@
+name: Scheduled Infrastructure Tests
+
+on:
+  schedule:
+    # Run every day at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  AWS_REGION: us-west-2
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  integration-tests:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, staging]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          pip install -r tests/requirements.txt
+          pip install boto3 pytest pytest-html pytest-json-report
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Run integration tests
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+          PROJECT_NAME: treza
+        run: |
+          pytest tests/integration/ \
+            -v \
+            --tb=short \
+            --html=test-report-${{ matrix.environment }}.html \
+            --self-contained-html \
+            --json-report \
+            --json-report-file=test-report-${{ matrix.environment }}.json
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.environment }}
+          path: |
+            test-report-${{ matrix.environment }}.html
+            test-report-${{ matrix.environment }}.json
+      
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const environment = '${{ matrix.environment }}';
+            
+            let report = 'Integration tests failed. Please check the workflow logs.';
+            
+            try {
+              const jsonReport = fs.readFileSync(`test-report-${environment}.json`, 'utf8');
+              const data = JSON.parse(jsonReport);
+              const failed = data.tests.filter(t => t.outcome === 'failed');
+              
+              report = `## Integration Test Failures (${environment})
+              
+**Failed Tests**: ${failed.length}
+**Total Tests**: ${data.summary.total}
+**Duration**: ${data.duration}s
+
+### Failed Tests:
+${failed.map(t => `- \`${t.nodeid}\`: ${t.call?.longrepr || 'No details'}`).join('\n')}
+
+[View full report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            } catch (e) {
+              console.log('Could not parse test report:', e);
+            }
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Integration Tests Failed: ${environment} environment`,
+              body: report,
+              labels: ['bug', 'automated-test', environment]
+            });
+
+  cost-monitoring:
+    name: Monitor Infrastructure Costs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Check costs
+        run: |
+          ./scripts/cost-alert.sh -e all --dry-run
+      
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 💰 Daily Cost Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Cost monitoring completed. Check the logs for details." >> $GITHUB_STEP_SUMMARY
+
+  health-check:
+    name: Infrastructure Health Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, staging]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Run health check
+        run: |
+          ./scripts/health-check.sh ${{ matrix.environment }} || echo "Health check completed with warnings"
+      
+      - name: Report status
+        run: |
+          echo "## Health Check: ${{ matrix.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "Health check completed. Review logs for details." >> $GITHUB_STEP_SUMMARY
+

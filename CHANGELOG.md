@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Quick reference guide and cheat sheet
   - Debugging tools and techniques
   - Cost optimization strategies
-- Enhanced Makefile with 15+ new commands
+- Enhanced Makefile with 18+ new commands
   - Dependency graph generation (make graph)
   - Cost estimation (make cost-estimate)
   - Drift detection (make drift-detect)
@@ -63,6 +63,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Terraform console access
   - State backup automation
   - Version information display
+  - Integration testing (make test-integration)
+  - Cost alerting (make cost-alert)
+- Comprehensive integration test suite
+  - VPC infrastructure validation
+  - ECS cluster and task testing
+  - Lambda function verification
+  - Step Functions validation
+  - Monitoring and logging checks
+  - IAM role verification
+  - Security group validation
+  - 50+ automated infrastructure tests
+- Cost monitoring and alerting script
+  - Automated cost tracking per environment
+  - Configurable budget thresholds
+  - Slack webhook integration
+  - Email notification support
+  - Daily/weekly cost reports
+  - Service-level cost breakdown
+- Scheduled CI/CD workflows
+  - Daily integration tests
+  - Automated cost monitoring
+  - Infrastructure health checks
+  - Automatic issue creation on failures
 
 ## [2.0.0] - 2024-12-XX
 

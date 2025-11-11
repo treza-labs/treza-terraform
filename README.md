@@ -222,25 +222,67 @@ terraform validate
 docker build --platform linux/amd64 -f docker/terraform-runner/Dockerfile -t test-runner .
 
 # Run unit tests
-cd tests
-python -m pytest unit/
+make test
+
+# Run integration tests (requires AWS credentials)
+make test-integration ENV=dev
+
+# Run all tests
+make test-all ENV=dev
 ```
 
 ### Integration Testing
 
+Our comprehensive integration test suite validates:
+- ✅ VPC infrastructure (subnets, NAT gateways, endpoints)
+- ✅ ECS clusters and task definitions
+- ✅ Lambda functions (trigger, validation, error handler)
+- ✅ Step Functions (deployment and cleanup workflows)
+- ✅ CloudWatch monitoring and logging
+- ✅ IAM roles and policies
+- ✅ Security groups and network configuration
+- ✅ DynamoDB tables
+
 ```bash
-# Test shared security group functionality
-terraform plan -target=module.networking.aws_security_group.shared_enclave
+# Run integration tests
+make test-integration ENV=dev
 
-# Test enclave deployment with shared security groups
-cd docker/terraform-runner/terraform-configs
-terraform init
-terraform plan
-
-# Run integration tests (requires AWS credentials)
+# Run specific test class
 cd tests
-python -m pytest integration/
+pytest integration/test_infrastructure.py::TestVPCInfrastructure -v
+
+# Run with detailed output
+pytest integration/ -v --tb=short
 ```
+
+### Cost Monitoring
+
+Monitor and alert on infrastructure costs:
+
+```bash
+# Check costs for environment
+make cost-alert ENV=dev
+
+# Check all environments
+./scripts/cost-alert.sh -e all
+
+# Set custom threshold
+./scripts/cost-alert.sh -e prod -t 1000
+
+# With Slack notifications
+./scripts/cost-alert.sh -e all --slack-webhook YOUR_WEBHOOK_URL
+
+# Dry run (no alerts)
+./scripts/cost-alert.sh -e dev --dry-run
+```
+
+### Automated Testing
+
+Scheduled workflows run automatically:
+- **Daily integration tests** (6 AM UTC)
+- **Cost monitoring** (daily)
+- **Health checks** (daily)
+- **Auto-creates issues** on failures
 
 ## 📊 Monitoring & Logging
 
