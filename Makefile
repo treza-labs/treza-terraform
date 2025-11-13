@@ -1,7 +1,8 @@
 # Treza Terraform Infrastructure Makefile
 # Provides convenient commands for common operations
 
-.PHONY: help init plan apply destroy validate fmt lint test clean setup-dev setup-prod validate-env validate-backend validate-config validate-all pre-deploy status logs
+.PHONY: help init plan apply destroy validate fmt lint test clean setup-dev setup-prod validate-env validate-backend validate-config validate-all pre-deploy status logs \
+	drift-remediation tag-resources benchmark drift-detect backup inventory smoke-test
 
 # Default environment
 ENV ?= dev
@@ -124,6 +125,18 @@ backup: ## Backup critical infrastructure resources
 inventory: ## Generate infrastructure inventory report
 	@echo "$(BLUE)Generating inventory for $(ENV)...$(RESET)"
 	@./scripts/inventory.sh $(ENV)
+
+drift-remediation: ## Detect and optionally fix infrastructure drift
+	@echo "$(BLUE)Running drift detection and remediation for $(ENV)...$(RESET)"
+	@./scripts/drift-remediation.sh $(ENV)
+
+tag-resources: ## Apply standard tags to all resources
+	@echo "$(BLUE)Tagging resources in $(ENV)...$(RESET)"
+	@./scripts/tag-resources.sh $(ENV)
+
+benchmark: ## Run performance benchmarks on infrastructure
+	@echo "$(BLUE)Running performance benchmarks for $(ENV)...$(RESET)"
+	@./scripts/benchmark.sh $(ENV)
 
 build-lambda: ## Build Lambda functions
 	@echo "$(BLUE)Building Lambda functions...$(RESET)"

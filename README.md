@@ -298,6 +298,19 @@ make backup ENV=prod
 # Generate inventory report
 make inventory ENV=dev
 
+# Drift detection and remediation
+make drift-remediation ENV=dev              # Detect drift only
+./scripts/drift-remediation.sh prod --dry-run  # Preview fixes
+./scripts/drift-remediation.sh staging --auto  # Auto-remediate
+
+# Resource tagging automation
+make tag-resources ENV=dev                  # Tag all resources
+./scripts/tag-resources.sh prod --dry-run   # Preview tagging
+
+# Performance benchmarking
+make benchmark ENV=staging                  # Full benchmark suite
+./scripts/benchmark.sh prod --quick         # Quick benchmark
+
 # With custom options
 ./scripts/smoke-test.sh prod --verbose
 ./scripts/backup.sh prod --bucket my-backup-bucket

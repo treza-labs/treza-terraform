@@ -91,6 +91,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automated backup script for critical resources
   - Resource inventory generator for auditing
   - Support for multiple output formats (text, JSON, CSV)
+- Infrastructure governance and maintenance tools
+  - Drift detection and remediation script (drift-remediation.sh)
+    - Automated detection of Terraform state drift
+    - Missing resource tags detection and remediation
+    - S3 encryption and versioning validation
+    - Lambda configuration checks (DLQ, timeouts)
+    - CloudWatch log retention policy enforcement
+    - Security group rule validation
+    - IAM policy permission checks
+    - Auto-remediation with dry-run support
+  - Resource tagging automation script (tag-resources.sh)
+    - Automated tagging of EC2, Lambda, S3, DynamoDB, ECS, VPC, and Security Groups
+    - Configurable required and optional tags
+    - Tag compliance verification
+    - Dry-run mode for safe testing
+  - Performance benchmarking suite (benchmark.sh)
+    - Lambda cold/warm start time measurement
+    - DynamoDB read/write latency testing
+    - S3 upload/download speed tests
+    - Step Functions execution time tracking
+    - ECS task startup performance
+    - Network latency measurements
+    - JSON-formatted benchmark results
+- Makefile enhancements
+  - Added `make drift-remediation` for infrastructure drift management
+  - Added `make tag-resources` for automated resource tagging
+  - Added `make benchmark` for performance testing
+  - Total of 48 commands available
 
 ## [2.0.0] - 2024-12-XX
 
