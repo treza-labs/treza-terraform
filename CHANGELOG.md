@@ -86,6 +86,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automated cost monitoring
   - Infrastructure health checks
   - Automatic issue creation on failures
+- Operational utility scripts
+  - Smoke test script for quick infrastructure validation
+  - Automated backup script for critical resources
+  - Resource inventory generator for auditing
+  - Support for multiple output formats (text, JSON, CSV)
 
 ## [2.0.0] - 2024-12-XX
 

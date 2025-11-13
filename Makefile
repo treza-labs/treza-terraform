@@ -113,6 +113,18 @@ cost-alert: ## Run cost monitoring and alerts
 	@echo "$(BLUE)Checking costs for $(ENV)...$(RESET)"
 	@./scripts/cost-alert.sh -e $(ENV)
 
+smoke-test: ## Run quick smoke tests to validate infrastructure
+	@echo "$(BLUE)Running smoke tests for $(ENV)...$(RESET)"
+	@./scripts/smoke-test.sh $(ENV)
+
+backup: ## Backup critical infrastructure resources
+	@echo "$(BLUE)Backing up $(ENV) environment...$(RESET)"
+	@./scripts/backup.sh $(ENV)
+
+inventory: ## Generate infrastructure inventory report
+	@echo "$(BLUE)Generating inventory for $(ENV)...$(RESET)"
+	@./scripts/inventory.sh $(ENV)
+
 build-lambda: ## Build Lambda functions
 	@echo "$(BLUE)Building Lambda functions...$(RESET)"
 	./modules/lambda/build-functions.sh

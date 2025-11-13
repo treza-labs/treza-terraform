@@ -284,6 +284,26 @@ Scheduled workflows run automatically:
 - **Health checks** (daily)
 - **Auto-creates issues** on failures
 
+### Operational Tools
+
+Quick validation and maintenance:
+
+```bash
+# Smoke test (quick validation)
+make smoke-test ENV=dev
+
+# Backup critical resources
+make backup ENV=prod
+
+# Generate inventory report
+make inventory ENV=dev
+
+# With custom options
+./scripts/smoke-test.sh prod --verbose
+./scripts/backup.sh prod --bucket my-backup-bucket
+./scripts/inventory.sh all --format json
+```
+
 ## 📊 Monitoring & Logging
 
 The infrastructure includes comprehensive monitoring and advanced log viewing capabilities:
