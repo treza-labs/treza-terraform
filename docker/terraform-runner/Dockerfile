@@ -1,5 +1,5 @@
 # Use Amazon Linux 2 as base image to match ECS environment
-FROM amazonlinux:2
+FROM amazonlinux:2023
 
 # Set environment variables
 ENV TERRAFORM_VERSION=1.6.6
