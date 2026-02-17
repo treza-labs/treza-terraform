@@ -1,24 +1,42 @@
 #!/bin/bash
 set -e
 exec > >(tee -a /var/log/cloud-init-output.log) 2>&1
+
+# ── Terraform template variables ──────────────────────────────────────────────
 enclave_id="${enclave_id}"
 cpu_count="${cpu_count}"
 memory_mib="${memory_mib}"
 docker_image="${docker_image}"
+workload_type="${workload_type}"
+health_check_path="${health_check_path}"
+health_check_interval="${health_check_interval}"
+aws_services="${aws_services}"
+expose_ports="${expose_ports}"
+scripts_bucket="${scripts_bucket}"
+
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $1"; }
-log "Starting enclave deployment for $enclave_id with image: $docker_image"
+log "Starting enclave deployment for $enclave_id"
+log "  Image:          $docker_image"
+log "  Workload type:  $workload_type"
+log "  CPU:            $cpu_count"
+log "  Memory (MiB):   $memory_mib"
+
+# ── Install dependencies ──────────────────────────────────────────────────────
 yum update -y
-yum install -y docker python3 python3-pip curl
+yum install -y docker python3 python3-pip curl jq
 pip3 install boto3
 systemctl start docker
 systemctl enable docker
 amazon-linux-extras install aws-nitro-enclaves-cli -y
 yum install -y aws-nitro-enclaves-cli-devel
+
+# ── Bring CPUs online ─────────────────────────────────────────────────────────
 log "Bringing all CPUs online..."
 for cpu in /sys/devices/system/cpu/cpu[1-9]*; do
- if [ -f "$cpu/online" ]; then echo 1 > "$cpu/online" 2>/dev/null || true; fi
+  if [ -f "$cpu/online" ]; then echo 1 > "$cpu/online" 2>/dev/null || true; fi
 done
-cat > /etc/systemd/system/cpu-monitor.service << 'EOF'
+
+cat > /etc/systemd/system/cpu-monitor.service << 'CPUEOF'
 [Unit]
 Description=CPU Monitor for Nitro Enclaves
 After=multi-user.target
@@ -29,240 +47,164 @@ Restart=always
 RestartSec=3
 [Install]
 WantedBy=multi-user.target
-EOF
+CPUEOF
 systemctl enable cpu-monitor.service
 systemctl start cpu-monitor.service
 log "CPUs online: $(cat /sys/devices/system/cpu/online)"
+
+# ── Configure Nitro Enclaves allocator ────────────────────────────────────────
 log "Configuring Nitro Enclaves allocator..."
 mkdir -p /etc/nitro_enclaves
 cat > /etc/nitro_enclaves/allocator.yaml << EOF
 ---
-memory_mib: 1024
-cpu_count: 2
+memory_mib: $memory_mib
+cpu_count: $cpu_count
 EOF
 systemctl enable nitro-enclaves-allocator.service
 systemctl start nitro-enclaves-allocator.service
 sleep 5
-log "Pulling container image $docker_image..."
-docker pull $docker_image 2>/dev/null || log "Failed to pull $docker_image, will use default output"
-log "Executing container $docker_image to capture output..."
-CONTAINER_OUTPUT=$(timeout 30 docker run --rm $docker_image 2>/dev/null || echo "Container execution failed or timed out")
-log "Container output captured: $CONTAINER_OUTPUT"
-cat > /tmp/parent.py << EOF
-import socket,json,boto3,time,sys,threading,subprocess,os
-VMADDR_CID_ANY=-1
-VSOCK_PORT=5000
-CONTAINER_OUTPUT="""$CONTAINER_OUTPUT"""
-def setup_cloudwatch(enclave_id):
- client=boto3.client('logs',region_name=os.environ.get('AWS_DEFAULT_REGION', 'us-west-2'))
- log_group=f"/aws/ec2/enclave/{enclave_id}"
- log_stream="application"
- try:client.create_log_group(logGroupName=log_group)
- except:pass
- try:client.create_log_stream(logGroupName=log_group,logStreamName=log_stream)
- except:pass
- return client,log_group,log_stream
-def send_to_cloudwatch(client,log_group,log_stream,message):
- try:
-  response=client.describe_log_streams(logGroupName=log_group,logStreamNamePrefix=log_stream)
-  sequence_token=None
-  if response['logStreams']:sequence_token=response['logStreams'][0].get('uploadSequenceToken')
-  kwargs={'logGroupName':log_group,'logStreamName':log_stream,'logEvents':[{'timestamp':int(time.time()*1000),'message':message}]}
-  if sequence_token:kwargs['sequenceToken']=sequence_token
-  client.put_log_events(**kwargs)
-  print(f"[PARENT] Logged: {message}")
- except Exception as e:print(f"[PARENT] Log error: {e}")
-def get_real_pcrs():
- """Get real PCR values from Nitro Security Module on parent instance"""
- try:
-  print(f"[PARENT] Attempting to get real PCR values from NSM...")
-  result = subprocess.run(['/usr/bin/nitro-cli', 'describe-enclaves'], 
-                         capture_output=True, text=True, timeout=30)
-  if result.returncode == 0 and result.stdout.strip():
-   enclave_data = json.loads(result.stdout)
-   if enclave_data and len(enclave_data) > 0:
-    measurements = enclave_data[0].get('Measurements', {})
-    if measurements:
-     pcr_values = {
-      'PCR0': measurements.get('PCR0'),
-      'PCR1': measurements.get('PCR1'), 
-      'PCR2': measurements.get('PCR2')
-     }
-     print(f"[PARENT] Successfully retrieved real PCR values: {pcr_values}")
-     return [
-      f"[PCR] PCR0: {pcr_values['PCR0']}" if pcr_values['PCR0'] else "[PCR] PCR0: unavailable",
-      f"[PCR] PCR1: {pcr_values['PCR1']}" if pcr_values['PCR1'] else "[PCR] PCR1: unavailable",
-      f"[PCR] PCR2: {pcr_values['PCR2']}" if pcr_values['PCR2'] else "[PCR] PCR2: unavailable"
-     ]
-  print(f"[PARENT] nitro-cli output: {result.stdout}")
-  print(f"[PARENT] nitro-cli error: {result.stderr}")
- except subprocess.TimeoutExpired:
-  print(f"[PARENT] Timeout getting PCRs from nitro-cli")
- except json.JSONDecodeError as e:
-  print(f"[PARENT] JSON decode error: {e}")
- except Exception as e:
-  print(f"[PARENT] Error getting real PCRs: {e}")
- print(f"[PARENT] Could not retrieve real PCR values - NSM may not be available")
- return [
-  "[PCR] PCR0: ERROR_NSM_UNAVAILABLE",
-  "[PCR] PCR1: ERROR_NSM_UNAVAILABLE", 
-  "[PCR] PCR2: ERROR_NSM_UNAVAILABLE"
- ]
-def handle_connection(conn,addr,client,log_group,log_stream):
- send_to_cloudwatch(client,log_group,log_stream,f"[SUCCESS] Enclave connected from CID {addr}")
- try:
-  while True:
-   data=conn.recv(1024)
-   if not data:break
-   message=data.decode('utf-8').strip()
-   if "REQUEST_CONTAINER_OUTPUT" in message:
-    for line in CONTAINER_OUTPUT.split('\n'):
-     if line.strip():
-      app_msg=f"[APPLICATION] {line.strip()}"
-      send_to_cloudwatch(client,log_group,log_stream,app_msg)
-      conn.send(app_msg.encode('utf-8'))
-      time.sleep(0.5)
-    conn.send(b"[SUCCESS] Application output transmission complete")
-   elif "REQUEST_PCR_VALUES" in message:
-    pcr_messages = get_real_pcrs()
-    for pcr_msg in pcr_messages:
-     send_to_cloudwatch(client,log_group,log_stream,pcr_msg)
-     conn.send(pcr_msg.encode('utf-8'))
-     time.sleep(0.5)
-    conn.send(b"[SUCCESS] All PCR values transmitted")
-   else:send_to_cloudwatch(client,log_group,log_stream,message);conn.send(b"ACK")
- except Exception as e:send_to_cloudwatch(client,log_group,log_stream,f"[ERROR] Connection error: {e}")
- finally:conn.close();send_to_cloudwatch(client,log_group,log_stream,"[INFO] Connection closed")
-def main():
- enclave_id=sys.argv[1]
- client,log_group,log_stream=setup_cloudwatch(enclave_id)
- send_to_cloudwatch(client,log_group,log_stream,f"[SUCCESS] Parent proxy started for {enclave_id}")
- send_to_cloudwatch(client,log_group,log_stream,f"[INFO] Application output ready: {len(CONTAINER_OUTPUT)} characters")
- try:
-  sock=socket.socket(socket.AF_VSOCK,socket.SOCK_STREAM)
-  sock.bind((VMADDR_CID_ANY,VSOCK_PORT))
-  sock.listen(5)
-  send_to_cloudwatch(client,log_group,log_stream,"[SUCCESS] Parent proxy listening on port 5000")
-  while True:
-   conn,addr=sock.accept()
-   send_to_cloudwatch(client,log_group,log_stream,f"[SUCCESS] Connection accepted from {addr}")
-   threading.Thread(target=handle_connection,args=(conn,addr,client,log_group,log_stream),daemon=True).start()
- except Exception as e:send_to_cloudwatch(client,log_group,log_stream,f"[ERROR] Parent proxy failed: {e}");sys.exit(1)
-if __name__=="__main__":main()
-EOF
-cat > /tmp/enclave.py << 'EOF'
-import socket,time,os,sys
-VMADDR_CID_HOST=3
-VSOCK_PORT=5000
-def send_message(sock,message):
- sock.send(message.encode('utf-8'))
- return sock.recv(1024)
 
-def main():
- enclave_id=os.environ.get('ENCLAVE_ID')
- container_image=os.environ.get('DOCKER_IMAGE','hello-world')
- if not enclave_id and len(sys.argv)>1:enclave_id=sys.argv[1]
- if not enclave_id:enclave_id='unknown'
- print(f"[ENCLAVE] Starting enclave for {enclave_id} with image {container_image}")
- print(f"[ENCLAVE] Environment variables: {dict(os.environ)}")
- print(f"[ENCLAVE] Waiting for parent proxy to be ready...")
- time.sleep(30)
- for attempt in range(30):
-  try:
-   print(f"[ENCLAVE] Connection attempt {attempt+1}: Creating socket...")
-   sock=socket.socket(socket.AF_VSOCK,socket.SOCK_STREAM)
-   sock.settimeout(120)
-   print(f"[ENCLAVE] Connecting to CID {VMADDR_CID_HOST} port {VSOCK_PORT}...")
-   sock.connect((VMADDR_CID_HOST,VSOCK_PORT))
-   print(f"[ENCLAVE] Connection established successfully")
-   send_message(sock,f"[SUCCESS] Enclave {enclave_id} connected with image {container_image}")
-   time.sleep(1)
-   print(f"[ENCLAVE] Requesting PCR values from parent...")
-   send_message(sock,f"REQUEST_PCR_VALUES for {enclave_id}")
-   pcr_count=0
-   while pcr_count < 3:
-    response=sock.recv(1024).decode('utf-8')
-    if "All PCR values transmitted" in response:break
-    if response.startswith("[PCR]"):
-     print(f"[ENCLAVE] Received PCR: {response}")
-     send_message(sock,response)
-     pcr_count+=1
-    if pcr_count>=3:break
-   send_message(sock,f"[SUCCESS] All PCR values transmitted for {enclave_id}")
-   print(f"[ENCLAVE] Requesting application output for {container_image}...")
-   send_message(sock,f"REQUEST_CONTAINER_OUTPUT for {container_image}")
-   app_lines=0
-   while True:
-    response=sock.recv(1024).decode('utf-8')
-    if "Application output transmission complete" in response:break
-    if response.startswith("[APPLICATION]"):print(f"[ENCLAVE] Received: {response}");app_lines+=1
-    if app_lines>20:break
-   send_message(sock,f"[SUCCESS] Enclave {enclave_id} completed all operations")
-   print(f"[ENCLAVE] All operations completed successfully")
-   sock.close()
-   print(f"[ENCLAVE] Staying alive for monitoring...")
-   time.sleep(600)
-   return
-  except Exception as e:print(f"[ENCLAVE] Attempt {attempt+1} failed: {e}");time.sleep(15)
- print(f"[ENCLAVE] All connection attempts failed")
-if __name__=="__main__":main()
-EOF
-cat > /tmp/Dockerfile.enclave << EOF
-FROM python:3.9-slim
-WORKDIR /app
-COPY enclave.py /app/
-COPY entrypoint.sh /app/
-ENV PYTHONUNBUFFERED=1
-RUN chmod +x /app/entrypoint.sh
-CMD ["/app/entrypoint.sh"]
-EOF
-cat > /tmp/entrypoint.sh << 'EOF'
+# ── Pull the user's Docker image ─────────────────────────────────────────────
+log "Pulling user image: $docker_image"
+docker pull "$docker_image" || {
+  log "ERROR: Failed to pull $docker_image"
+  exit 1
+}
+
+# ── Inspect user image entrypoint and cmd ─────────────────────────────────────
+log "Inspecting user image for entrypoint and cmd..."
+USER_ENTRYPOINT=$(docker inspect --format='{{json .Config.Entrypoint}}' "$docker_image" 2>/dev/null || echo "null")
+USER_CMD=$(docker inspect --format='{{json .Config.Cmd}}' "$docker_image" 2>/dev/null || echo "null")
+
+if [ "$USER_ENTRYPOINT" = "null" ] || [ "$USER_ENTRYPOINT" = "" ]; then
+  USER_ENTRYPOINT=""
+else
+  USER_ENTRYPOINT=$(echo "$USER_ENTRYPOINT" | jq -r 'join(" ")')
+fi
+
+if [ "$USER_CMD" = "null" ] || [ "$USER_CMD" = "" ]; then
+  USER_CMD=""
+else
+  USER_CMD=$(echo "$USER_CMD" | jq -r 'join(" ")')
+fi
+
+# Build TREZA_USER_CMD from the inspected entrypoint + cmd
+TREZA_USER_CMD=""
+if [ -n "$USER_ENTRYPOINT" ] && [ -n "$USER_CMD" ]; then
+  TREZA_USER_CMD="$USER_ENTRYPOINT $USER_CMD"
+elif [ -n "$USER_ENTRYPOINT" ]; then
+  TREZA_USER_CMD="$USER_ENTRYPOINT"
+elif [ -n "$USER_CMD" ]; then
+  TREZA_USER_CMD="$USER_CMD"
+fi
+
+log "User entrypoint: $USER_ENTRYPOINT"
+log "User cmd:        $USER_CMD"
+log "Combined:        $TREZA_USER_CMD"
+
+# ── Download proxy scripts from S3 ────────────────────────────────────────────
+log "Downloading proxy scripts from S3 bucket: $scripts_bucket"
+aws s3 cp "s3://$scripts_bucket/parent_proxy.py" /tmp/parent_proxy.py
+aws s3 cp "s3://$scripts_bucket/enclave_proxy.py" /tmp/enclave_proxy.py
+log "Proxy scripts downloaded successfully"
+
+# ── Write the composite entrypoint ───────────────────────────────────────────
+cat > /tmp/entrypoint.sh << 'ENTRYEOF'
 #!/bin/bash
-if [ -n "$1" ]; then export ENCLAVE_ID="$1"
-elif [ -z "$ENCLAVE_ID" ]; then export ENCLAVE_ID="unknown"
+set -euo pipefail
+echo "[TREZA-ENTRYPOINT] Starting Treza enclave supervisor"
+echo "[TREZA-ENTRYPOINT] Enclave ID: $${ENCLAVE_ID:-unknown}"
+echo "[TREZA-ENTRYPOINT] Workload type: $${TREZA_WORKLOAD_TYPE:-batch}"
+if [ ! -f /opt/enclave-proxy/enclave_proxy.py ]; then
+    echo "[TREZA-ENTRYPOINT] ERROR: enclave_proxy.py not found"
+    exit 1
 fi
-if [ -z "$DOCKER_IMAGE" ]; then export DOCKER_IMAGE="hello-world"
+if ! command -v python3 &>/dev/null; then
+    echo "[TREZA-ENTRYPOINT] ERROR: python3 not found"
+    exit 1
 fi
-echo "[ENTRYPOINT] Starting enclave with ENCLAVE_ID: $ENCLAVE_ID and DOCKER_IMAGE: $DOCKER_IMAGE"
-exec python3 /app/enclave.py
-EOF
-chmod +x /tmp/parent.py /tmp/enclave.py /tmp/entrypoint.sh
-log "Building enclave container..."
+exec python3 /opt/enclave-proxy/enclave_proxy.py
+ENTRYEOF
+chmod +x /tmp/entrypoint.sh
+
+# ── Build the composite enclave image ─────────────────────────────────────────
+log "Building composite enclave image..."
+
+cat > /tmp/Dockerfile.composite << DEOF
+ARG USER_IMAGE=$docker_image
+FROM python:3.11-slim AS proxy
+COPY enclave_proxy.py /opt/enclave-proxy/
+COPY entrypoint.sh /opt/enclave-proxy/
+RUN chmod +x /opt/enclave-proxy/entrypoint.sh /opt/enclave-proxy/enclave_proxy.py
+
+FROM $docker_image AS app
+COPY --from=proxy /opt/enclave-proxy /opt/enclave-proxy
+ENV ENCLAVE_ID=$enclave_id
+ENV TREZA_WORKLOAD_TYPE=$workload_type
+ENV TREZA_USER_CMD="$TREZA_USER_CMD"
+ENV TREZA_HEALTH_PATH=$health_check_path
+ENV TREZA_HEALTH_INTERVAL=$health_check_interval
+ENV TREZA_AWS_SERVICES=$aws_services
+ENV TREZA_EXPOSE_PORTS=$expose_ports
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["/opt/enclave-proxy/entrypoint.sh"]
+CMD []
+DEOF
+
 cd /tmp
-docker build -t nitro-enclave:latest -f Dockerfile.enclave .
-log "Building enclave image file..."
+docker build -t treza-enclave:latest -f Dockerfile.composite .
+
+# ── Build the EIF ────────────────────────────────────────────────────────────
+log "Building Enclave Image File (EIF)..."
 export NITRO_CLI_ARTIFACTS=/tmp/nitro_artifacts
 mkdir -p $NITRO_CLI_ARTIFACTS
-nitro-cli build-enclave --docker-uri nitro-enclave:latest --output-file /tmp/nitro-enclave.eif
-log "Starting parent proxy..."
-python3 /tmp/parent.py $enclave_id &
+nitro-cli build-enclave --docker-uri treza-enclave:latest --output-file /tmp/treza-enclave.eif
+
+# ── Start the parent proxy ───────────────────────────────────────────────────
+log "Starting parent proxy v2.0..."
+python3 /tmp/parent_proxy.py "$enclave_id" &
 PARENT_PID=$!
-sleep 30
+sleep 15
+
+# ── Ensure CPUs and restart allocator ─────────────────────────────────────────
 log "Ensuring CPUs are online before starting enclave..."
 for i in {1..5}; do
- for cpu in /sys/devices/system/cpu/cpu[1-9]*; do
-  if [ -f "$cpu/online" ]; then echo 1 > "$cpu/online" 2>/dev/null || true; fi
- done
- sleep 2
+  for cpu in /sys/devices/system/cpu/cpu[1-9]*; do
+    if [ -f "$cpu/online" ]; then echo 1 > "$cpu/online" 2>/dev/null || true; fi
+  done
+  sleep 2
 done
 log "Restarting allocator to recognize all CPUs..."
 systemctl restart nitro-enclaves-allocator
 sleep 10
-log "Starting enclave with ENCLAVE_ID=$enclave_id and DOCKER_IMAGE=$docker_image..."
-ENCLAVE_OUTPUT=$(DOCKER_IMAGE="$docker_image" nitro-cli run-enclave --cpu-count $cpu_count --memory $memory_mib --eif-path /tmp/nitro-enclave.eif --enclave-name nitro-enclave --debug-mode 2>&1)
+
+# ── Launch the enclave ───────────────────────────────────────────────────────
+log "Starting enclave (cpu=$cpu_count, mem=$memory_mib, workload=$workload_type)..."
+ENCLAVE_OUTPUT=$(nitro-cli run-enclave \
+  --cpu-count "$cpu_count" \
+  --memory "$memory_mib" \
+  --eif-path /tmp/treza-enclave.eif \
+  --enclave-name treza-enclave \
+  --debug-mode 2>&1)
 ENCLAVE_STATUS=$?
+
 log "Enclave start output: $ENCLAVE_OUTPUT"
 log "Enclave start status: $ENCLAVE_STATUS"
+
 if [ $ENCLAVE_STATUS -eq 0 ]; then
- log "Enclave started successfully with image: $docker_image"
- ACTUAL_ENCLAVE_ID=$(echo "$ENCLAVE_OUTPUT" | grep -o '"EnclaveId": "[^"]*"' | cut -d'"' -f4)
- log "Actual Enclave ID: $ACTUAL_ENCLAVE_ID"
- for i in {1..12}; do
-  ENCLAVE_STATUS=$(nitro-cli describe-enclaves 2>/dev/null)
-  log "Enclave status check $i: $ENCLAVE_STATUS"
-  sleep 10
- done
+  log "Enclave started successfully"
+  ACTUAL_ENCLAVE_ID=$(echo "$ENCLAVE_OUTPUT" | grep -o '"EnclaveId": "[^"]*"' | cut -d'"' -f4)
+  log "Nitro Enclave ID: $ACTUAL_ENCLAVE_ID"
+
+  # Monitor the enclave
+  for i in {1..12}; do
+    ENCLAVE_DESC=$(nitro-cli describe-enclaves 2>/dev/null)
+    log "Enclave status check $i: $ENCLAVE_DESC"
+    sleep 10
+  done
 else
- log "Enclave failed to start"
+  log "ERROR: Enclave failed to start"
 fi
-log "Deployment completed - check CloudWatch logs for connection and application output"
+
+log "Deployment completed - user workload running inside the enclave"
+log "Check CloudWatch logs at /aws/ec2/enclave/$enclave_id"

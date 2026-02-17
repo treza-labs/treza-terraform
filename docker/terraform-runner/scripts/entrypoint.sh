@@ -12,6 +12,11 @@ SHARED_SECURITY_GROUP_ID=${SHARED_SECURITY_GROUP_ID:-""}
 TF_STATE_BUCKET=${TF_STATE_BUCKET:-""}
 TF_STATE_DYNAMODB_TABLE=${TF_STATE_DYNAMODB_TABLE:-""}
 DOCKER_IMAGE=${DOCKER_IMAGE:-"hello-world"}
+WORKLOAD_TYPE=${WORKLOAD_TYPE:-"batch"}
+HEALTH_CHECK_PATH=${HEALTH_CHECK_PATH:-"/health"}
+HEALTH_CHECK_INTERVAL=${HEALTH_CHECK_INTERVAL:-"30"}
+AWS_SERVICES=${AWS_SERVICES:-""}
+EXPOSE_PORTS=${EXPOSE_PORTS:-""}
 
 echo "🚀 Terraform Runner v2.2 - Enhanced Error Handling & Validation 🚀"
 echo "📅 Started at: $(date)"
@@ -198,13 +203,19 @@ debug_mode = true
 shared_security_group_id = "${SHARED_SECURITY_GROUP_ID:-""}"
 EOF
     elif [ "$TERRAFORM_FILE" = "main.tf" ]; then
-        # vsocket configuration - optimized for vsocket communication
+        # vsocket v2 configuration - supports arbitrary workloads
         cat > terraform.tfvars <<EOF
 enclave_id = "$ENCLAVE_ID"
 aws_region = "${AWS_DEFAULT_REGION:-us-west-2}"
 environment = "${ENVIRONMENT:-dev}"
 cpu_count = 2
 memory_mib = 1024
+docker_image = "${DOCKER_IMAGE:-hello-world}"
+workload_type = "${WORKLOAD_TYPE:-batch}"
+health_check_path = "${HEALTH_CHECK_PATH:-/health}"
+health_check_interval = ${HEALTH_CHECK_INTERVAL:-30}
+aws_services = "${AWS_SERVICES:-}"
+expose_ports = "${EXPOSE_PORTS:-}"
 EOF
     else
         # Regular configuration - include all variables

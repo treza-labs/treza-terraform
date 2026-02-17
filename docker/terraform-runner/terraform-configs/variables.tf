@@ -135,3 +135,45 @@ variable "shared_security_group_id" {
   type        = string
   default     = ""
 }
+
+# ── Workload manifest variables ─────────────────────────────────────────────
+
+variable "workload_type" {
+  description = "Type of workload to run in the enclave: batch (run-to-completion), service (long-running HTTP server), or daemon (background process)"
+  type        = string
+  default     = "batch"
+
+  validation {
+    condition     = contains(["batch", "service", "daemon"], var.workload_type)
+    error_message = "Workload type must be one of: batch, service, daemon."
+  }
+}
+
+variable "health_check_path" {
+  description = "HTTP path for health checks on service workloads (e.g. /health)"
+  type        = string
+  default     = "/health"
+}
+
+variable "health_check_interval" {
+  description = "Interval in seconds between health checks for service/daemon workloads"
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.health_check_interval >= 5 && var.health_check_interval <= 300
+    error_message = "Health check interval must be between 5 and 300 seconds."
+  }
+}
+
+variable "aws_services" {
+  description = "Comma-separated list of AWS services the enclave workload needs access to via the vsock proxy (e.g. kms,s3,secretsmanager)"
+  type        = string
+  default     = ""
+}
+
+variable "expose_ports" {
+  description = "Comma-separated list of ports the user's application listens on inside the enclave (for vsock port-forwarding)"
+  type        = string
+  default     = ""
+}

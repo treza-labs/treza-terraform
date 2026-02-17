@@ -15,15 +15,42 @@ resource "aws_cloudwatch_log_group" "step_functions" {
   })
 }
 
+# CloudWatch Logs resource policy to allow Step Functions to write logs
+resource "aws_cloudwatch_log_resource_policy" "step_functions" {
+  policy_name     = "${var.name_prefix}-step-functions-logs"
+  policy_document = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "states.amazonaws.com"
+        }
+        Action = [
+          "logs:CreateLogDelivery",
+          "logs:GetLogDelivery",
+          "logs:UpdateLogDelivery",
+          "logs:DeleteLogDelivery",
+          "logs:ListLogDeliveries",
+          "logs:PutLogEvents",
+          "logs:PutResourcePolicy",
+          "logs:DescribeResourcePolicies",
+          "logs:DescribeLogGroups"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # Deployment State Machine
 resource "aws_sfn_state_machine" "deployment" {
   name     = "${var.name_prefix}-deployment"
   role_arn = var.step_functions_role_arn
   
   logging_configuration {
-    log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
-    include_execution_data = true
-    level                  = "ERROR"  # Start with ERROR level, can be changed to ALL if needed
+    include_execution_data = false
+    level                  = "OFF"
   }
   
   definition = jsonencode({
@@ -163,6 +190,30 @@ resource "aws_sfn_state_machine" "deployment" {
                   {
                     Name = "SHARED_SECURITY_GROUP_ID"
                     Value = var.shared_enclave_security_group_id
+                  },
+                  {
+                    Name = "DOCKER_IMAGE"
+                    "Value.$" = "$.docker_image"
+                  },
+                  {
+                    Name = "WORKLOAD_TYPE"
+                    "Value.$" = "$.workload_type"
+                  },
+                  {
+                    Name = "HEALTH_CHECK_PATH"
+                    "Value.$" = "$.health_check_path"
+                  },
+                  {
+                    Name = "HEALTH_CHECK_INTERVAL"
+                    "Value.$" = "$.health_check_interval"
+                  },
+                  {
+                    Name = "AWS_SERVICES"
+                    "Value.$" = "$.aws_services"
+                  },
+                  {
+                    Name = "EXPOSE_PORTS"
+                    "Value.$" = "$.expose_ports"
                   }
                 ]
               }
@@ -290,9 +341,8 @@ resource "aws_sfn_state_machine" "cleanup" {
   role_arn = var.step_functions_role_arn
   
   logging_configuration {
-    log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
-    include_execution_data = true
-    level                  = "ERROR"  # Start with ERROR level, can be changed to ALL if needed
+    include_execution_data = false
+    level                  = "OFF"
   }
   
   definition = jsonencode({

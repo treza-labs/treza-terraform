@@ -2,62 +2,8 @@
 # This implements secure communication between parent and enclave via vsocket
 # Date: 2025-08-25
 
-# Variables (moved to top to avoid reference errors)
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-west-2"
-}
-
-variable "enclave_id" {
-  description = "Unique identifier for the enclave"
-  type        = string
-}
-
-variable "cpu_count" {
-  description = "Number of CPU cores for the enclave"
-  type        = number
-  default     = 2
-}
-
-variable "memory_mib" {
-  description = "Memory allocation for the enclave in MiB"
-  type        = number
-  default     = 1024
-}
-
-variable "docker_image" {
-  description = "Docker image to run in the enclave"
-  type        = string
-  default     = "hello-world"
-}
-
-terraform {
-  required_version = ">= 1.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-  # Backend configuration will be provided by backend.tf
-}
-
-provider "aws" {
-  region = var.aws_region
-}
-
-variable "environment" {
-  description = "Environment name"
-  type        = string
-  default     = "dev"
-}
-
-variable "instance_type" {
-  description = "EC2 instance type for the parent instance"
-  type        = string
-  default     = "m6i.xlarge"
-}
+# Variables are declared in variables.tf
+# Provider and terraform blocks are in providers.tf
 
 # Data sources
 data "aws_ami" "amazon_linux" {
@@ -160,6 +106,15 @@ resource "aws_iam_role_policy" "enclave_cloudwatch_policy" {
           "arn:aws:logs:${var.aws_region}:*:log-group:/aws/ec2/enclave/*",
           "arn:aws:logs:${var.aws_region}:*:log-group:/aws/ec2/enclave/*:*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject"
+        ]
+        Resource = [
+          "${aws_s3_bucket.enclave_scripts.arn}/*"
+        ]
       }
     ]
   })
@@ -188,13 +143,44 @@ resource "aws_cloudwatch_log_group" "enclave_logs" {
   }
 }
 
+# S3 bucket for enclave scripts (avoids user_data 16KB limit)
+resource "aws_s3_bucket" "enclave_scripts" {
+  bucket_prefix = "treza-enclave-scripts-"
+  force_destroy = true
+  tags = {
+    Environment = var.environment
+    EnclaveId   = var.enclave_id
+    Purpose     = "enclave-proxy-scripts"
+  }
+}
+
+resource "aws_s3_object" "parent_proxy" {
+  bucket = aws_s3_bucket.enclave_scripts.id
+  key    = "parent_proxy.py"
+  source = "${path.module}/parent_proxy.py"
+  etag   = filemd5("${path.module}/parent_proxy.py")
+}
+
+resource "aws_s3_object" "enclave_proxy" {
+  bucket = aws_s3_bucket.enclave_scripts.id
+  key    = "enclave_proxy.py"
+  source = "${path.module}/enclave_proxy.py"
+  etag   = filemd5("${path.module}/enclave_proxy.py")
+}
+
 # User data script with template variables
 locals {
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    enclave_id   = var.enclave_id
-    cpu_count    = var.cpu_count
-    memory_mib   = var.memory_mib
-    docker_image = var.docker_image
+    enclave_id           = var.enclave_id
+    cpu_count            = var.cpu_count
+    memory_mib           = var.memory_mib
+    docker_image         = var.docker_image
+    workload_type        = var.workload_type
+    health_check_path    = var.health_check_path
+    health_check_interval = var.health_check_interval
+    aws_services         = var.aws_services
+    expose_ports         = var.expose_ports
+    scripts_bucket       = aws_s3_bucket.enclave_scripts.id
   }))
 }
 
@@ -239,13 +225,14 @@ resource "null_resource" "update_enclave_record" {
       aws dynamodb update-item \
         --table-name "treza-enclaves-${var.environment}" \
         --key '{"id": {"S": "${var.enclave_id}"}}' \
-        --update-expression "SET instance_id = :instance_id, #status = :status, updated_at = :timestamp, architecture = :architecture" \
+        --update-expression "SET instance_id = :instance_id, #status = :status, updated_at = :timestamp, architecture = :architecture, workload_type = :workload_type" \
         --expression-attribute-names '{"#status": "status"}' \
         --expression-attribute-values '{
           ":instance_id": {"S": "${aws_instance.enclave_instance.id}"},
           ":status": {"S": "DEPLOYING"},
           ":timestamp": {"S": "${timestamp()}"},
-          ":architecture": {"S": "vsocket"}
+          ":architecture": {"S": "vsocket-v2"},
+          ":workload_type": {"S": "${var.workload_type}"}
         }' \
         --region ${var.aws_region}
     EOT
@@ -273,33 +260,4 @@ resource "null_resource" "mark_deployment_complete" {
   }
 }
 
-# Outputs
-output "instance_id" {
-  description = "ID of the EC2 instance"
-  value       = aws_instance.enclave_instance.id
-}
-
-output "instance_public_ip" {
-  description = "Public IP address of the EC2 instance"
-  value       = aws_instance.enclave_instance.public_ip
-}
-
-output "instance_private_ip" {
-  description = "Private IP address of the EC2 instance"
-  value       = aws_instance.enclave_instance.private_ip
-}
-
-output "log_group_name" {
-  description = "CloudWatch log group name"
-  value       = aws_cloudwatch_log_group.enclave_logs.name
-}
-
-output "enclave_id" {
-  description = "Enclave ID"
-  value       = var.enclave_id
-}
-
-output "architecture" {
-  description = "Communication architecture"
-  value       = "vsocket"
-}
+# Outputs are declared in outputs.tf

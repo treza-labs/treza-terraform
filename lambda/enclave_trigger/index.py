@@ -78,6 +78,11 @@ def process_record(record, deployment_step_function_arn, cleanup_step_function_a
                         config_dict[key] = int(value['N'])
                     elif 'BOOL' in value:
                         config_dict[key] = value['BOOL']
+                    elif 'L' in value:
+                        # Handle list values (e.g., awsServices, exposePorts)
+                        config_dict[key] = ','.join(
+                            item.get('S', '') for item in value['L'] if 'S' in item
+                        )
                 
                 # Set configuration based on provider
                 if provider_id == 'aws-nitro':
@@ -85,12 +90,26 @@ def process_record(record, deployment_step_function_arn, cleanup_step_function_a
                 else:
                     configuration = new_image.get('configuration', {}).get('S', 'main.tf')
                 
+                # Extract workload manifest fields from provider config
+                docker_image = config_dict.pop('dockerImage', 'hello-world')
+                workload_type = config_dict.pop('workloadType', 'batch')
+                health_check_path = config_dict.pop('healthCheckPath', '/health')
+                health_check_interval = config_dict.pop('healthCheckInterval', 30)
+                aws_services = config_dict.pop('awsServices', '')
+                expose_ports = config_dict.pop('exposePorts', '')
+                
                 step_input = {
                     'enclave_id': enclave_id,
                     'action': action,
                     'configuration': json.dumps(config_dict) if config_dict else '{}',
-                    'terraform_config': configuration,  # Add separate field for Terraform config file
+                    'terraform_config': configuration,
                     'wallet_address': wallet_address,
+                    'docker_image': str(docker_image),
+                    'workload_type': str(workload_type),
+                    'health_check_path': str(health_check_path),
+                    'health_check_interval': str(health_check_interval),
+                    'aws_services': str(aws_services),
+                    'expose_ports': str(expose_ports),
                     'timestamp': datetime.utcnow().isoformat()
                 }
                 

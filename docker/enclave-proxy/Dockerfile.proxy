@@ -1,0 +1,22 @@
+# Treza Enclave Proxy - Base Image
+#
+# Lightweight proxy that runs inside the Nitro Enclave alongside the user's
+# application. Provides HTTP tunneling, KMS proxy, and log streaming over vsock.
+#
+# This image is used as a build stage in the composite Dockerfile that wraps
+# the user's Docker image with enclave communication capabilities.
+#
+# Usage:
+#   docker build -t treza-enclave-proxy:latest -f Dockerfile.proxy .
+
+FROM python:3.11-slim AS proxy
+
+WORKDIR /opt/enclave-proxy
+
+COPY enclave_proxy.py /opt/enclave-proxy/
+COPY entrypoint.sh /opt/enclave-proxy/
+
+RUN chmod +x /opt/enclave-proxy/entrypoint.sh && \
+    chmod +x /opt/enclave-proxy/enclave_proxy.py
+
+ENV PYTHONUNBUFFERED=1

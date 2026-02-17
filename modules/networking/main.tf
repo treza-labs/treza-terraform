@@ -165,15 +165,6 @@ resource "aws_security_group" "shared_enclave" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
     description = "HTTPS outbound"
-    
-    # Add CloudWatch flow log monitoring
-    dynamic "tags" {
-      for_each = var.environment != "dev" ? [1] : []
-      content {
-        key   = "FlowLog"
-        value = "true"
-      }
-    }
   }
 
   # HTTP outbound for package repositories - restricted to known package sources

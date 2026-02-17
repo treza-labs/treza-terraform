@@ -1,0 +1,57 @@
+# Treza Composite Enclave Image
+#
+# This Dockerfile is generated at deploy time on the parent EC2 instance.
+# It layers the Treza enclave proxy on top of the user's Docker image so
+# that the user's workload runs INSIDE the Nitro Enclave with vsock
+# communication to the parent.
+#
+# Build args (set by user_data.sh):
+#   USER_IMAGE        - The user's Docker image (already pulled)
+#   ENCLAVE_ID        - Unique enclave identifier
+#   WORKLOAD_TYPE     - "batch", "service", or "daemon"
+#   USER_ENTRYPOINT   - Original ENTRYPOINT from user's image (JSON-encoded)
+#   USER_CMD          - Original CMD from user's image (JSON-encoded)
+#   HEALTH_PATH       - Health check path for service workloads
+#   HEALTH_INTERVAL   - Health check interval in seconds
+#   AWS_SERVICES      - Comma-separated AWS services to proxy
+#   EXPOSE_PORTS      - Comma-separated ports the user's app listens on
+
+ARG USER_IMAGE=hello-world
+
+# Stage 1: The enclave proxy
+FROM python:3.11-slim AS proxy
+COPY enclave_proxy.py /opt/enclave-proxy/
+COPY entrypoint.sh /opt/enclave-proxy/
+RUN chmod +x /opt/enclave-proxy/entrypoint.sh /opt/enclave-proxy/enclave_proxy.py
+
+# Stage 2: Combine with the user's image
+FROM ${USER_IMAGE} AS app
+
+# Re-declare ARGs after FROM (Docker scoping rules)
+ARG ENCLAVE_ID=unknown
+ARG WORKLOAD_TYPE=batch
+ARG USER_ENTRYPOINT=""
+ARG USER_CMD=""
+ARG HEALTH_PATH=/health
+ARG HEALTH_INTERVAL=30
+ARG AWS_SERVICES=""
+ARG EXPOSE_PORTS=""
+
+# Copy the enclave proxy into the user's image
+COPY --from=proxy /opt/enclave-proxy /opt/enclave-proxy
+
+# Set enclave environment variables
+ENV ENCLAVE_ID=${ENCLAVE_ID}
+ENV TREZA_WORKLOAD_TYPE=${WORKLOAD_TYPE}
+ENV TREZA_USER_ENTRYPOINT=${USER_ENTRYPOINT}
+ENV TREZA_USER_CMD_ARGS=${USER_CMD}
+ENV TREZA_HEALTH_PATH=${HEALTH_PATH}
+ENV TREZA_HEALTH_INTERVAL=${HEALTH_INTERVAL}
+ENV TREZA_AWS_SERVICES=${AWS_SERVICES}
+ENV TREZA_EXPOSE_PORTS=${EXPOSE_PORTS}
+ENV PYTHONUNBUFFERED=1
+
+# Override entrypoint to start the proxy supervisor, which in turn starts
+# the user's original entrypoint/cmd
+ENTRYPOINT ["/opt/enclave-proxy/entrypoint.sh"]
+CMD []
