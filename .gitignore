@@ -85,3 +85,9 @@ htmlcov/
 # Temporary files
 *.tmp
 *.temp
+
+# Compiled binaries
+docker/terraform-runner/terraform-configs/enclave-proxy
+
+# Rust build artifacts
+enclave-proxy/target/

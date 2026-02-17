@@ -1,0 +1,27 @@
+[package]
+name = "enclave-proxy"
+version = "0.1.0"
+edition = "2021"
+description = "Statically-linked Nitro Enclave vsock proxy for Treza"
+
+[[bin]]
+name = "enclave-proxy"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "time", "signal", "process", "sync", "macros"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+http = "1"
+bytes = "1"
+libc = "0.2"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

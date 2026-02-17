@@ -168,6 +168,13 @@ resource "aws_s3_object" "enclave_proxy" {
   etag   = filemd5("${path.module}/enclave_proxy.py")
 }
 
+resource "aws_s3_object" "enclave_proxy_binary" {
+  bucket = aws_s3_bucket.enclave_scripts.id
+  key    = "enclave-proxy"
+  source = "${path.module}/enclave-proxy"
+  etag   = filemd5("${path.module}/enclave-proxy")
+}
+
 # User data script with template variables
 locals {
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {

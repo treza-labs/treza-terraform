@@ -105,49 +105,26 @@ log "Combined:        $TREZA_USER_CMD"
 # ── Download proxy scripts from S3 ────────────────────────────────────────────
 log "Downloading proxy scripts from S3 bucket: $scripts_bucket"
 aws s3 cp "s3://$scripts_bucket/parent_proxy.py" /tmp/parent_proxy.py
-aws s3 cp "s3://$scripts_bucket/enclave_proxy.py" /tmp/enclave_proxy.py
+aws s3 cp "s3://$scripts_bucket/enclave-proxy" /tmp/enclave-proxy
+chmod +x /tmp/enclave-proxy
 log "Proxy scripts downloaded successfully"
 
-# ── Write the composite entrypoint ───────────────────────────────────────────
-cat > /tmp/entrypoint.sh << 'ENTRYEOF'
-#!/bin/bash
-set -euo pipefail
-echo "[TREZA-ENTRYPOINT] Starting Treza enclave supervisor"
-echo "[TREZA-ENTRYPOINT] Enclave ID: $${ENCLAVE_ID:-unknown}"
-echo "[TREZA-ENTRYPOINT] Workload type: $${TREZA_WORKLOAD_TYPE:-batch}"
-if [ ! -f /opt/enclave-proxy/enclave_proxy.py ]; then
-    echo "[TREZA-ENTRYPOINT] ERROR: enclave_proxy.py not found"
-    exit 1
-fi
-if ! command -v python3 &>/dev/null; then
-    echo "[TREZA-ENTRYPOINT] ERROR: python3 not found"
-    exit 1
-fi
-exec python3 /opt/enclave-proxy/enclave_proxy.py
-ENTRYEOF
-chmod +x /tmp/entrypoint.sh
-
 # ── Build the composite enclave image ─────────────────────────────────────────
-log "Building composite enclave image..."
+log "Building composite enclave image (Rust proxy, no Python dependency)..."
 
 cat > /tmp/Dockerfile.composite << DEOF
-ARG USER_IMAGE=$docker_image
-FROM python:3.11-slim AS proxy
-COPY enclave_proxy.py /opt/enclave-proxy/
-COPY entrypoint.sh /opt/enclave-proxy/
-RUN chmod +x /opt/enclave-proxy/entrypoint.sh /opt/enclave-proxy/enclave_proxy.py
-
-FROM $docker_image AS app
-COPY --from=proxy /opt/enclave-proxy /opt/enclave-proxy
+FROM $docker_image
+COPY enclave-proxy /opt/enclave-proxy/enclave-proxy
 ENV ENCLAVE_ID=$enclave_id
 ENV TREZA_WORKLOAD_TYPE=$workload_type
 ENV TREZA_USER_CMD="$TREZA_USER_CMD"
+ENV TREZA_USER_ENTRYPOINT="$USER_ENTRYPOINT"
+ENV TREZA_USER_CMD_ARGS="$USER_CMD"
 ENV TREZA_HEALTH_PATH=$health_check_path
 ENV TREZA_HEALTH_INTERVAL=$health_check_interval
 ENV TREZA_AWS_SERVICES=$aws_services
 ENV TREZA_EXPOSE_PORTS=$expose_ports
-ENV PYTHONUNBUFFERED=1
-ENTRYPOINT ["/opt/enclave-proxy/entrypoint.sh"]
+ENTRYPOINT ["/opt/enclave-proxy/enclave-proxy"]
 CMD []
 DEOF
 
